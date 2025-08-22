@@ -1,87 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
-// Add your computer's IP address here
 const API_URL = 'http://192.168.43.142:5000/api/users';
+const TOKEN_KEY = 'userToken';
 
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function LoginScreen({ navigation }) {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [canUseBiometrics, setCanUseBiometrics] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter Email and Password');
-      return;
-    }
-    
-    try {
-      const { data } = await axios.post(`${API_URL}/login`, { email, password });
-      
-      Alert.alert('Success!', `Welcome ${data.name}`);
-      // Navigate to Dashboard from here. For now, we only show an alert.
-      // Example: navigation.navigate('Dashboard');
-      // You can also save the token using AsyncStorage here.
+    // Check if biometric authentication is available and if a token exists
+    useEffect(() => {
+        (async () => {
+            const compatible = await LocalAuthentication.hasHardwareAsync();
+            const enrolled = await LocalAuthentication.isEnrolledAsync();
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            if (compatible && enrolled && token) {
+                setCanUseBiometrics(true);
+            }
+        })();
+    }, []);
 
-    } catch (error) {
-      const message = error.response?.data?.message || 'Login error';
-      Alert.alert('Error', message);
-    }
-  };
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please enter email and password.');
+            return;
+        }
+        try {
+            const response = await axios.post(`${API_URL}/login`, { email, password });
+            if (response.data.status === 'success') {
+                const { token } = response.data;
+                await SecureStore.setItemAsync(TOKEN_KEY, token);
+                Alert.alert('Success', 'Login successful!');
+                navigation.replace('Home');
+            }
+        } catch (error) {
+            Alert.alert('Login Failed', error.response?.data?.message || 'An error occurred.');
+        }
+    };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login to Eco Pulse</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email Address"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <Button title="Login" onPress={handleLogin} />
-      <Text style={styles.registerText} onPress={() => navigation.navigate('Register')}>
-        Don't have an account? Register
-      </Text>
-    </View>
-  );
-};
+    const handleBiometricLogin = async () => {
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Log in with your fingerprint',
+            });
+
+            if (result.success) {
+                // Biometric was successful, now we can navigate to home.
+                // The token is already stored, HomeScreen will use it.
+                navigation.replace('Home');
+            } else {
+                Alert.alert('Failure', 'Fingerprint authentication failed.');
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'Biometric login failed.');
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Welcome Back!</Text>
+            <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+            <View style={styles.buttonContainer}>
+                <Button title="Login" onPress={handleLogin} />
+            </View>
+            {canUseBiometrics && (
+                <View style={styles.buttonContainer}>
+                    <Button title="Login with Fingerprint" onPress={handleBiometricLogin} color="#007bff" />
+                </View>
+            )}
+            <View style={styles.buttonContainer}>
+                 <Button title="Don't have an account? Register" onPress={() => navigation.navigate('Register')} color="#6c757d" />
+            </View>
+        </View>
+    );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    backgroundColor: '#fff',
-  },
-  registerText: {
-    marginTop: 20,
-    color: 'blue',
-    textAlign: 'center'
-  }
+    container: { flex: 1, justifyContent: 'center', padding: 20 },
+    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+    input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, paddingHorizontal: 10, borderRadius: 5 },
+    buttonContainer: { marginTop: 10 },
 });
-
-export default LoginScreen;
