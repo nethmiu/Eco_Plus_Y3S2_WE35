@@ -6,7 +6,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
-import AddChallengeScreen from './screens/AddChallengeScreen'; // අලුතින් import කරන්න
+import AddChallengeScreen from './screens/AddChallengeScreen'; 
+
+import AdminDashboard from './screens/AdminDashboard';
+import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
 
 const Stack = createStackNavigator();
 
@@ -18,6 +21,9 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
+        
+        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+        <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
       </Stack.Navigator>
     </NavigationContainer>
   );
