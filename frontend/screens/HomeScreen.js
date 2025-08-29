@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.43.142:5000/api/users';
+const API_URL = 'http://192.168.8.132:5000/api/users';
 const TOKEN_KEY = 'userToken';
 
 export default function HomeScreen({ navigation }) {
