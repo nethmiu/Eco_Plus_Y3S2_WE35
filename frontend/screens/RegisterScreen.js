@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import axios from 'axios';
 
-// !! වැදගත් !! - ඔබේ පරිගණකයේ IP address එක මෙතන යොදන්න
+
 const API_URL = 'http://192.168.43.142:5000/api/users'; 
 
 export default function RegisterScreen({ navigation }) {
