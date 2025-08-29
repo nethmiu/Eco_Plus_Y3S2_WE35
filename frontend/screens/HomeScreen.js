@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.43.142:5000/api/users';
+const API_URL = 'http://192.168.8.100:5001/api';
 const TOKEN_KEY = 'userToken';
 
 export default function HomeScreen({ navigation }) {
@@ -15,13 +15,11 @@ export default function HomeScreen({ navigation }) {
             try {
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-                    // If no token, redirect to login
                     navigation.replace('Login');
                     return;
                 }
 
-                // Make a request to the protected '/me' route
-                const response = await axios.get(`${API_URL}/me`, {
+                const response = await axios.get(`${API_URL}/users/me`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -30,7 +28,6 @@ export default function HomeScreen({ navigation }) {
                 setUser(response.data.data.user);
             } catch (error) {
                 console.error(error.response?.data || error.message);
-                // If token is invalid or expired, clear it and go to login
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 navigation.replace('Login');
             } finally {
@@ -47,26 +44,85 @@ export default function HomeScreen({ navigation }) {
         navigation.replace('Login');
     };
 
+    const handleGetStarted = () => {
+        navigation.navigate('ElectricityData');
+    };
+
     if (loading) {
         return <ActivityIndicator size="large" style={styles.container} />;
     }
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Welcome, {user?.name}!</Text>
-            <Text style={styles.text}>Email: {user?.email}</Text>
-            <Text style={styles.text}>City: {user?.city}</Text>
-            <Text style={styles.text}>Role: {user?.role}</Text>
+            <Text style={styles.title}>Welcome, {user?.name}! 👋</Text>
+            <Text style={styles.subtitle}>Let's track your sustainability journey</Text>
+            
+            <View style={styles.infoContainer}>
+                <Text style={styles.text}>Email: {user?.email}</Text>
+                <Text style={styles.text}>City: {user?.city}</Text>
+                <Text style={styles.text}>Household Members: {user?.householdMembers}</Text>
+            </View>
+
+            <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
+                <Text style={styles.getStartedText}>Get Started</Text>
+            </TouchableOpacity>
+
             <View style={styles.buttonContainer}>
-              <Button title="Logout" onPress={handleLogout} color="#dc3545" />
+                <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', padding: 20, alignItems: 'center' },
-    title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
-    text: { fontSize: 16, marginBottom: 8 },
-    buttonContainer: { marginTop: 20 },
+    container: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        padding: 20, 
+        backgroundColor: '#f5f5f5' 
+    },
+    title: { 
+        fontSize: 28, 
+        fontWeight: 'bold', 
+        marginBottom: 10,
+        textAlign: 'center',
+        color: '#2c5530'
+    },
+    subtitle: {
+        fontSize: 16,
+        marginBottom: 30,
+        textAlign: 'center',
+        color: '#666'
+    },
+    infoContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        marginBottom: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3
+    },
+    text: { 
+        fontSize: 16, 
+        marginBottom: 8,
+        color: '#333'
+    },
+    getStartedButton: {
+        backgroundColor: '#4caf50',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 20
+    },
+    getStartedText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold'
+    },
+    buttonContainer: { 
+        marginTop: 10 
+    }
 });
