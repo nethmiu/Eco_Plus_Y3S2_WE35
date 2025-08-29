@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 're
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.43.142:5000/api/users'; 
+const API_URL = 'http://192.168.8.132:5000/api/users'; 
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
