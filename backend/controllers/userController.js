@@ -30,6 +30,7 @@ exports.registerUser = async (req, res) => {
         createSendToken(newUser, 201, res);
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
+        res.log(err);
     }
 };
 
@@ -50,6 +51,7 @@ exports.loginUser = async (req, res) => {
         createSendToken(user, 200, res);
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'Something went wrong!' });
+        res.log(err);
     }
 };
 

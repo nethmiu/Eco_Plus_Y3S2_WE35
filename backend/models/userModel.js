@@ -35,6 +35,26 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide your city'],
     },
+    phoneNumber: {
+        type: String,
+        required: [true, 'Please provide your phone number'],
+    },
+    preferences: {
+        wasteCollectionDay: {
+            type: String,
+            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            // This will be set during onboarding
+        },
+        language: {
+            type: String,
+            enum: ['en', 'si', 'ta'], // English, Sinhala, Tamil
+            default: 'en'
+        },
+        notificationEnabled: {
+            type: Boolean,
+            default: true
+        }
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],
