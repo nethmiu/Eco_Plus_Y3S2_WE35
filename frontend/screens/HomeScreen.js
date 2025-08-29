@@ -63,6 +63,10 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.buttonContainer}>
               <Button title="Add Challenges" onPress={() => navigation.navigate('AddChallenge')} color="#28a745" />
             </View>
+            {/* View Challenges බොත්තම මෙහි එකතු කර ඇත */}
+            <View style={styles.buttonContainer}>
+              <Button title="View Challenges" onPress={() => navigation.navigate('ChallengeList')} color="#007bff" />
+            </View>
             <View style={styles.buttonContainer}>
               <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>
@@ -74,5 +78,5 @@ const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', padding: 20, alignItems: 'center' },
     title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
     text: { fontSize: 16, marginBottom: 8 },
-    buttonContainer: { marginTop: 20 },
+    buttonContainer: { marginTop: 20, width: '80%' }, // බොත්තම් සඳහා වැඩි ඉඩක්
 });
