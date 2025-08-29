@@ -1,9 +1,11 @@
+// HomeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.43.142:5000/api/users';
+// API URL එක ඔබේ පරිගණකයේ IP address එකට අනුව සකස් කරන්න
+const API_URL = 'http://10.47.144.219:5000/api/users';
 const TOKEN_KEY = 'userToken';
 
 export default function HomeScreen({ navigation }) {
@@ -15,12 +17,12 @@ export default function HomeScreen({ navigation }) {
             try {
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-                    // If no token, redirect to login
+                    // Token එකක් නොමැති නම්, Login page එකට යොමු කරන්න
                     navigation.replace('Login');
                     return;
                 }
 
-                // Make a request to the protected '/me' route
+                // Protected '/me' route එකට request එකක් යවන්න
                 const response = await axios.get(`${API_URL}/me`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -30,7 +32,7 @@ export default function HomeScreen({ navigation }) {
                 setUser(response.data.data.user);
             } catch (error) {
                 console.error(error.response?.data || error.message);
-                // If token is invalid or expired, clear it and go to login
+                // Token එක වැරදි නම් හෝ කල් ඉකුත් වී ඇත්නම්, එය ඉවත් කර Login page එකට යන්න
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 navigation.replace('Login');
             } finally {
@@ -43,7 +45,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleLogout = async () => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
-        Alert.alert('Logged Out', 'You have been successfully logged out.');
+        Alert.alert('Logged Out', 'ඔබ සාර්ථකව log out විය.');
         navigation.replace('Login');
     };
 
@@ -57,6 +59,10 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.text}>Email: {user?.email}</Text>
             <Text style={styles.text}>City: {user?.city}</Text>
             <Text style={styles.text}>Role: {user?.role}</Text>
+            {/* Add Challenges බොත්තම මෙහි එකතු කර ඇත */}
+            <View style={styles.buttonContainer}>
+              <Button title="Add Challenges" onPress={() => navigation.navigate('AddChallenge')} color="#28a745" />
+            </View>
             <View style={styles.buttonContainer}>
               <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>

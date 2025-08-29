@@ -1,8 +1,10 @@
+// server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
+const challengeRoutes = require('./routes/challengeRoutes'); // අලුතින් import කරන්න
 
 dotenv.config();
 
@@ -26,6 +28,9 @@ app.get('/', (req, res) => {
 
 // User Routes
 app.use('/api/users', userRoutes);
+
+// Challenge Routes (අලුතින් එකතු කළා)
+app.use('/api/challenges', challengeRoutes);
 
 
 const PORT = process.env.PORT || 5000;

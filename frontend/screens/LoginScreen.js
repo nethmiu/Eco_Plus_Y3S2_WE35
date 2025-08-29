@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.43.142:5000/api/users';
+const API_URL = 'http://10.47.144.219:5000/api/users';
 const TOKEN_KEY = 'userToken';
 
 export default function LoginScreen({ navigation }) {

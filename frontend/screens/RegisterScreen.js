@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 're
 import axios from 'axios';
 
 // !! වැදගත් !! - ඔබේ පරිගණකයේ IP address එක මෙතන යොදන්න
-const API_URL = 'http://192.168.43.142:5000/api/users'; 
+const API_URL = 'http://10.47.144.219:5000/api/users'; 
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
