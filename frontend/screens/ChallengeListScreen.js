@@ -1,11 +1,12 @@
 // screens/ChallengeListScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { FontAwesome } from '@expo/vector-icons';
 
-// ඔබේ පරිගණකයේ IP address එක
-const API_URL = 'http://10.47.144.219:5000/api/challenges'; // Challenges API endpoint එක
+// Set the API URL to your computer's IP address
+const API_URL = 'http://10.47.144.219:5000/api/challenges'; // Challenges API endpoint
 const TOKEN_KEY = 'userToken';
 
 export default function ChallengeListScreen({ navigation }) {
@@ -19,7 +20,7 @@ export default function ChallengeListScreen({ navigation }) {
                 setLoading(true);
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-                    // Token එකක් නොමැති නම්, Login page එකට යොමු කරන්න
+                    // If no token, redirect to login page
                     Alert.alert('Access Denied', 'Please log in to view challenges.');
                     navigation.replace('Login');
                     return;
@@ -35,7 +36,7 @@ export default function ChallengeListScreen({ navigation }) {
                 console.error('Error fetching challenges:', err.response?.data || err.message);
                 setError('Failed to load challenges. Please try again.');
                 Alert.alert('Error', err.response?.data?.message || 'Failed to load challenges.');
-                // Token invalid නම් Login page එකට යොමු කරන්න
+                // If token is invalid, redirect to login page
                 if (err.response?.status === 401) {
                     await SecureStore.deleteItemAsync(TOKEN_KEY);
                     navigation.replace('Login');
@@ -72,6 +73,9 @@ export default function ChallengeListScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <FontAwesome name="arrow-left" size={24} color="#000" />
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Available Challenges</Text>
             {challenges.length === 0 ? (
                 <Text style={styles.noChallengesText}>No challenges available at the moment.</Text>
@@ -92,6 +96,12 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: '#f8f9fa',
+    },
+    backButton: {
+        position: 'absolute',
+        top: 50,
+        left: 20,
+        zIndex: 10,
     },
     loadingContainer: {
         flex: 1,

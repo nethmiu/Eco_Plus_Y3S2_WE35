@@ -3,7 +3,7 @@ import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.43.142:5000/api/users'; // Ensure this IP is correct
+const API_URL = 'http://10.47.144.219:5000/api/users'; // Ensure this IP is correct
 const TOKEN_KEY = 'userToken';
 
 export default function AdminDashboard({ navigation }) {
@@ -60,6 +60,13 @@ export default function AdminDashboard({ navigation }) {
         <View style={styles.container}>
             <Text style={styles.title}>Admin Dashboard</Text>
             <Text style={styles.text}>Welcome, {user?.name || 'Administrator'}!</Text>
+            {/* Add Challenges and Manage Challenges buttons here */}
+            <View style={styles.buttonContainer}>
+              <Button title="Add Challenges" onPress={() => navigation.navigate('AddChallenge')} color="#28a745" />
+            </View>
+            <View style={styles.buttonContainer}>
+              <Button title="Manage Challenges" onPress={() => navigation.navigate('ManageChallenges')} color="#ffc107" />
+            </View>
             <View style={styles.buttonContainer}>
                 <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>

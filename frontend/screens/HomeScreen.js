@@ -59,10 +59,6 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.text}>Email: {user?.email}</Text>
             <Text style={styles.text}>City: {user?.city}</Text>
             <Text style={styles.text}>Role: {user?.role}</Text>
-            {/* Add Challenges බොත්තම මෙහි එකතු කර ඇත */}
-            <View style={styles.buttonContainer}>
-              <Button title="Add Challenges" onPress={() => navigation.navigate('AddChallenge')} color="#28a745" />
-            </View>
             {/* View Challenges බොත්තම මෙහි එකතු කර ඇත */}
             <View style={styles.buttonContainer}>
               <Button title="View Challenges" onPress={() => navigation.navigate('ChallengeList')} color="#007bff" />

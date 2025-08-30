@@ -8,6 +8,7 @@ import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
+import ManageChallengesScreen from './screens/ManageChallengesScreen';
 
 import AdminDashboard from './screens/AdminDashboard';
 import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
@@ -23,6 +24,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
+        <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
       </Stack.Navigator>
