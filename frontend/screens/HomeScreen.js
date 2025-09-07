@@ -3,7 +3,9 @@ import { View, Text, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpac
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.8.100:5001/api';
+import config from '../config';
+
+const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
 export default function HomeScreen({ navigation }) {

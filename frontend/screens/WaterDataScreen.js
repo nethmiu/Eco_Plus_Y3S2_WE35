@@ -3,8 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert,
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import config from '../config';
 
-const API_URL = 'http://192.168.8.100:5001/api';
+const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
 export default function WaterDataScreen({ navigation }) {
@@ -159,7 +160,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f5f5f5',
-        padding: 20
+        padding: 20,
+
     },
     title: {
         fontSize: 24,

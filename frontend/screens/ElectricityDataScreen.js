@@ -4,7 +4,9 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const API_URL = 'http://192.168.8.100:5001/api';
+import config from '../config';
+
+const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
 export default function ElectricityDataScreen({ navigation }) {
