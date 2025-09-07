@@ -1,6 +1,6 @@
 import React from 'react';
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
+//import { createStackNavigator } from '@react-navigation/stack';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -20,7 +20,6 @@ import DashboardScreen from './screens/DashboardScreen';
 
 export default function App() {
   return (
-<<<<<<< HEAD
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -36,7 +35,7 @@ export default function App() {
 
       </Stack.Navigator>
     </NavigationContainer>
-=======
+    
     // <NavigationContainer>
     //   <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
     //     <Stack.Screen name="Login" component={LoginScreen} />
@@ -49,7 +48,6 @@ export default function App() {
     // </NavigationContainer>
 
     // 👉 දැන් direct DashboardScreen render වෙයි
-    <DashboardScreen />
->>>>>>> dev-karindra
+    //<DashboardScreen />
   );
 }

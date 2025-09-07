@@ -4,13 +4,9 @@ import axios from 'axios';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-<<<<<<< HEAD
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
 
-=======
-const API_URL = 'http://192.168.8.132:5000/api/users';
->>>>>>> dev-karindra
 const TOKEN_KEY = 'userToken';
 
 export default function LoginScreen({ navigation }) {
