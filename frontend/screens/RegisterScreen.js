@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import axios from 'axios';
 
-<<<<<<< HEAD
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`; 
-=======
-
-const API_URL = 'http://192.168.43.142:5000/api/users'; 
->>>>>>> origin/dev-nethmi
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');
