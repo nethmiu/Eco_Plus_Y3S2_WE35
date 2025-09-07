@@ -4,9 +4,13 @@ import axios from 'axios';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
+<<<<<<< HEAD
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
 
+=======
+const API_URL = 'http://192.168.43.142:5000/api/users'; 
+>>>>>>> origin/dev-nethmi
 const TOKEN_KEY = 'userToken';
 
 export default function LoginScreen({ navigation }) {
@@ -14,7 +18,6 @@ export default function LoginScreen({ navigation }) {
     const [password, setPassword] = useState('');
     const [canUseBiometrics, setCanUseBiometrics] = useState(false);
 
-    // Check if biometric authentication is available and if a token exists
     useEffect(() => {
         (async () => {
             const compatible = await LocalAuthentication.hasHardwareAsync();
@@ -26,6 +29,27 @@ export default function LoginScreen({ navigation }) {
         })();
     }, []);
 
+    
+    const navigateByUserRole = (user) => {
+        if (!user || !user.role) {
+            
+            navigation.replace('Home');
+            return;
+        }
+
+        switch (user.role) {
+            case 'Admin':
+                navigation.replace('AdminDashboard');
+                break;
+            case 'Environmentalist':
+                navigation.replace('EnvironmentalistDashboard');
+                break;
+            default: 
+                navigation.replace('Home');
+                break;
+        }
+    };
+
     const handleLogin = async () => {
         if (!email || !password) {
             Alert.alert('Error', 'Please enter email and password.');
@@ -34,10 +58,14 @@ export default function LoginScreen({ navigation }) {
         try {
             const response = await axios.post(`${API_URL}/login`, { email, password });
             if (response.data.status === 'success') {
-                const { token } = response.data;
+                const { token, data } = response.data;
+                const { user } = data;
+
                 await SecureStore.setItemAsync(TOKEN_KEY, token);
                 Alert.alert('Success', 'Login successful!');
-                navigation.replace('Home');
+                
+                
+                navigateByUserRole(user);
             }
         } catch (error) {
             Alert.alert('Login Failed', error.response?.data?.message || 'An error occurred.');
@@ -51,9 +79,24 @@ export default function LoginScreen({ navigation }) {
             });
 
             if (result.success) {
-                // Biometric was successful, now we can navigate to home.
-                // The token is already stored, HomeScreen will use it.
-                navigation.replace('Home');
+                
+                const token = await SecureStore.getItemAsync(TOKEN_KEY);
+                if (!token) {
+                    Alert.alert('Error', 'Token not found. Please login with password first.');
+                    return;
+                }
+
+                // '/me' endpoint එකෙන් user data ලබාගැනීම
+                const response = await axios.get(`${API_URL}/me`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                const { user } = response.data.data;
+                
+                navigateByUserRole(user);
+
             } else {
                 Alert.alert('Failure', 'Fingerprint authentication failed.');
             }
