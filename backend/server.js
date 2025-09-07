@@ -1,9 +1,14 @@
+// server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
+<<<<<<< HEAD
 const dataRoutes = require('./routes/dataRoutes');
+=======
+const challengeRoutes = require('./routes/challengeRoutes'); // අලුතින් import කරන්න
+>>>>>>> origin/dev-shanuka
 
 dotenv.config();
 
@@ -27,7 +32,14 @@ app.get('/', (req, res) => {
 
 // User Routes
 app.use('/api/users', userRoutes);
+<<<<<<< HEAD
 app.use('/api/data', dataRoutes);
+=======
+
+// Challenge Routes (අලුතින් එකතු කළා)
+app.use('/api/challenges', challengeRoutes);
+
+>>>>>>> origin/dev-shanuka
 
 const PORT = process.env.PORT || 5000;
 
