@@ -5,8 +5,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { FontAwesome } from '@expo/vector-icons';
 
-// Set the API URL to your computer's IP address
-const API_URL = 'http://10.47.144.219:5000/api/challenges'; // Challenges API endpoint
+import config from '../config';
+const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`; // Challenges API endpoint
 const TOKEN_KEY = 'userToken';
 
 export default function ChallengeListScreen({ navigation }) {

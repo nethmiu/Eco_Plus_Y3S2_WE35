@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import axios from 'axios';
 
-<<<<<<< HEAD
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`; 
-=======
-// !! වැදගත් !! - ඔබේ පරිගණකයේ IP address එක මෙතන යොදන්න
-const API_URL = 'http://10.47.144.219:5000/api/users'; 
->>>>>>> origin/dev-shanuka
 
 export default function RegisterScreen({ navigation }) {
     const [name, setName] = useState('');

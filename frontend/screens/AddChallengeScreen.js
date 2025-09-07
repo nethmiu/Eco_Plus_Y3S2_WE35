@@ -5,8 +5,8 @@ import * as SecureStore from 'expo-secure-store';
 import { FontAwesome } from '@expo/vector-icons';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
-// Set the API URL to your computer's IP address
-const API_URL = 'http://10.47.144.219:5000/api/challenges';
+import config from '../config';
+const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
 
 export default function AddChallengeScreen({ navigation }) {

@@ -3,11 +3,8 @@ import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-<<<<<<< HEAD
-const API_URL = 'http://192.168.8.132:5000/api/users'; // Ensure this IP is correct
-=======
-const API_URL = 'http://10.47.144.219:5000/api/users'; // Ensure this IP is correct
->>>>>>> origin/dev-shanuka
+import config from '../config';
+const API_URL = `http://${config.IP}:${config.PORT}/api/users`; // Ensure this IP is correct
 const TOKEN_KEY = 'userToken';
 
 export default function EnvironmentalistDashboard({ navigation }) {

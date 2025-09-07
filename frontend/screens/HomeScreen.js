@@ -4,14 +4,9 @@ import { View, Text, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpac
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-<<<<<<< HEAD
 import config from '../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
-=======
-// API URL එක ඔබේ පරිගණකයේ IP address එකට අනුව සකස් කරන්න
-const API_URL = 'http://10.47.144.219:5000/api/users';
->>>>>>> origin/dev-shanuka
 const TOKEN_KEY = 'userToken';
 
 export default function HomeScreen({ navigation }) {
@@ -23,20 +18,12 @@ export default function HomeScreen({ navigation }) {
             try {
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-<<<<<<< HEAD
-=======
                     // Token එකක් නොමැති නම්, Login page එකට යොමු කරන්න
->>>>>>> origin/dev-shanuka
                     navigation.replace('Login');
                     return;
                 }
 
-<<<<<<< HEAD
                 const response = await axios.get(`${API_URL}/users/me`, {
-=======
-                // Protected '/me' route එකට request එකක් යවන්න
-                const response = await axios.get(`${API_URL}/me`, {
->>>>>>> origin/dev-shanuka
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -45,10 +32,7 @@ export default function HomeScreen({ navigation }) {
                 setUser(response.data.data.user);
             } catch (error) {
                 console.error(error.response?.data || error.message);
-<<<<<<< HEAD
-=======
                 // Token එක වැරදි නම් හෝ කල් ඉකුත් වී ඇත්නම්, එය ඉවත් කර Login page එකට යන්න
->>>>>>> origin/dev-shanuka
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 navigation.replace('Login');
             } finally {
@@ -75,7 +59,6 @@ export default function HomeScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-<<<<<<< HEAD
             <Text style={styles.title}>Welcome, {user?.name}! 👋</Text>
             <Text style={styles.subtitle}>Let's track your sustainability journey</Text>
             
@@ -89,16 +72,11 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.getStartedText}>Get Started</Text>
             </TouchableOpacity>
 
-=======
-            <Text style={styles.title}>Welcome, {user?.name}!</Text>
-            <Text style={styles.text}>Email: {user?.email}</Text>
-            <Text style={styles.text}>City: {user?.city}</Text>
-            <Text style={styles.text}>Role: {user?.role}</Text>
+            
             {/* View Challenges බොත්තම මෙහි එකතු කර ඇත */}
             <View style={styles.buttonContainer}>
               <Button title="View Challenges" onPress={() => navigation.navigate('ChallengeList')} color="#007bff" />
             </View>
->>>>>>> origin/dev-shanuka
             <View style={styles.buttonContainer}>
                 <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>
@@ -107,7 +85,6 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
     container: { 
         flex: 1, 
         justifyContent: 'center', 
@@ -159,10 +136,3 @@ const styles = StyleSheet.create({
         marginTop: 10 
     }
 });
-=======
-    container: { flex: 1, justifyContent: 'center', padding: 20, alignItems: 'center' },
-    title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
-    text: { fontSize: 16, marginBottom: 8 },
-    buttonContainer: { marginTop: 20, width: '80%' }, // බොත්තම් සඳහා වැඩි ඉඩක්
-});
->>>>>>> origin/dev-shanuka
