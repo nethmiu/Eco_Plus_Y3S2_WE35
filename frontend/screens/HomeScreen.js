@@ -18,7 +18,7 @@ export default function HomeScreen({ navigation }) {
             try {
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-                    // Token එකක් නොමැති නම්, Login page එකට යොමු කරන්න
+                    // If doesn't have token, navigate to Login
                     navigation.replace('Login');
                     return;
                 }
@@ -32,7 +32,7 @@ export default function HomeScreen({ navigation }) {
                 setUser(response.data.data.user);
             } catch (error) {
                 console.error(error.response?.data || error.message);
-                // Token එක වැරදි නම් හෝ කල් ඉකුත් වී ඇත්නම්, එය ඉවත් කර Login page එකට යන්න
+                // If Token is invalid or expired, delete it and navigate to Login
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 navigation.replace('Login');
             } finally {
@@ -45,7 +45,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleLogout = async () => {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
-        Alert.alert('Logged Out', 'ඔබ සාර්ථකව log out විය.');
+        Alert.alert('Logged Out', 'You logged out Successfully.');
         navigation.replace('Login');
     };
 
@@ -73,7 +73,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             
-            {/* View Challenges බොත්තම මෙහි එකතු කර ඇත */}
+            {/* View Challenges button */}
             <View style={styles.buttonContainer}>
               <Button title="View Challenges" onPress={() => navigation.navigate('ChallengeList')} color="#007bff" />
             </View>

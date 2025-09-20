@@ -2,6 +2,21 @@
   "expo": {
     "name": "frontend",
     "slug": "frontend",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to select the city from the map."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
     "version": "1.0.0",
     "plugins": [
       "expo-secure-store"
