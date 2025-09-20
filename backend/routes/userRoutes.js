@@ -9,5 +9,7 @@ router.post('/login', userController.loginUser);
 
 // This is a protected route. User must have a valid token to access it.
 router.get('/me', authMiddleware.protect, userController.getMe);
+router.patch('/updateMe', authMiddleware.protect,userController.updateMe);
+router.patch('/updatePassword',authMiddleware.protect, userController.updatePassword);
 
 module.exports = router;

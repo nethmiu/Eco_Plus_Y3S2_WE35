@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const dataRoutes = require('./routes/dataRoutes');
-const challengeRoutes = require('./routes/challengeRoutes'); // අලුතින් import කරන්න
+const challengeRoutes = require('./routes/challengeRoutes'); 
 
 dotenv.config();
 

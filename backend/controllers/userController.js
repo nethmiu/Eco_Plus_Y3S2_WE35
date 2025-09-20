@@ -54,6 +54,51 @@ exports.loginUser = async (req, res) => {
         
     }
 };
+exports.updateMe = async (req, res) => {
+    try {
+        const filteredBody = { ...req.body };
+        // User ට update කිරීමට අවසර නැති fields ඉවත් කිරීම
+        const disallowedFields = ['password', 'role', 'status'];
+        disallowedFields.forEach(el => delete filteredBody[el]);
+
+        const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
+            new: true,
+            runValidators: true
+        });
+
+        res.status(200).json({ status: 'success', data: { user: updatedUser } });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
+
+exports.updatePassword = async (req, res) => {
+    try {
+        // 1. User ව DB එකෙන් ලබාගැනීම (password එකත් සමඟ)
+        const user = await User.findById(req.user.id).select('+password');
+
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        
+        // 2. දැනට ඇති password එක නිවැරදිදැයි පරීක්ෂා කිරීම
+        if (!currentPassword || !(await user.correctPassword(currentPassword, user.password))) {
+            return res.status(401).json({ status: 'fail', message: 'Your current password is wrong.' });
+        }
+
+        // 3. අලුත් password දෙක සමානදැයි පරීක්ෂා කිරීම
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ status: 'fail', message: 'New password and confirm password do not match.' });
+        }
+
+        // 4. User ගේ password එක update කර save කිරීම
+        user.password = newPassword;
+        await user.save();
+
+        // 5. අලුත් token එකක් යවා user ව නැවත log කිරීම
+        createSendToken(user, 200, res);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'An error occurred while changing the password.' });
+    }
+};
 
 // This function gets the current user's data if they provide a valid token
 exports.getMe = async (req, res) => {
