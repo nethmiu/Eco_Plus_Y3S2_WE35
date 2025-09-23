@@ -23,4 +23,8 @@ router.delete('/deleteMe', authMiddleware.protect, userController.deleteMe);
 // Serve uploaded images
 router.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
+router.get('/admin/users', userController.getAllUsers);
+router.delete('/admin/users/:id', userController.deleteUserByAdmin);
+router.patch('/admin/users/:id', userController.updateUserByAdmin);
+
 module.exports = router;

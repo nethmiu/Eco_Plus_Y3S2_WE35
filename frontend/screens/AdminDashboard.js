@@ -428,6 +428,15 @@ export default function AdminDashboard({ navigation }) {
                                 variant="secondary"
                                 delay={800}
                             />
+
+                            <ActionButton
+                                title="Manage Users"
+                                icon="⚙️"
+                                onPress={() => navigation.navigate('ManageUsers')}
+                                variant="secondary"
+                                delay={800}
+                            />
+                           
                             
                             <ActionButton
                                 title="Sign Out"

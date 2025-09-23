@@ -19,8 +19,10 @@ import ManageChallengesScreen from './screens/ManageChallengesScreen';
 
 import AdminDashboard from './screens/AdminDashboard';
 import AdminRegistrationScreen from './screens/AdminRegistrationScreen';
+import ManageUsersScreen from './screens/ManageUsersScreen';
 import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
 import MapScreen from './screens/MapScreen';
+
 
 // 🔹 Import DashboardScreen
 import DashboardScreen from './screens/DashboardScreen';
@@ -46,6 +48,7 @@ export default function App() {
             component={AdminRegistrationScreen} 
             options={{ title: 'Create New User' }} 
         />
+        <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
 
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />
