@@ -339,7 +339,21 @@ export default function ProfileScreen({ route, navigation }) {
                 setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${response.data.data.user.photo}`);
             }
 
-            Alert.alert('Success', 'Your details have been updated.');
+            // Show success message with navigation option
+            Alert.alert(
+                'Success', 
+                'Your details have been updated successfully!',
+                [
+                    {
+                        text: 'Stay Here',
+                        style: 'cancel'
+                    },
+                    {
+                        text: 'Go to Home',
+                        onPress: () => navigation.navigate('Home')
+                    }
+                ]
+            );
         } catch (error) {
             console.error('Update error:', error);
             Alert.alert('Update Failed', error.response?.data?.message || 'Could not update details.');
@@ -464,6 +478,7 @@ export default function ProfileScreen({ route, navigation }) {
                                 <Ionicons name="camera" size={20} color="#fff" />
                             </View>
                         </TouchableOpacity>
+                        <Text style={styles.profileImageText}>Tap to change profile picture</Text>
                         <Text style={styles.title}>Edit Profile</Text>
                         <Text style={styles.subtitle}>Update your personal information</Text>
                     </View>
@@ -672,7 +687,7 @@ const styles = StyleSheet.create({
     },
     profileImageContainer: {
         position: 'relative',
-        marginBottom: 15,
+        marginBottom: 8,
     },
     profileImage: {
         width: 100,
@@ -703,6 +718,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 3,
         borderColor: '#fff',
+    },
+    profileImageText: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 15,
+        fontStyle: 'italic',
     },
     title: {
         fontSize: 28,
