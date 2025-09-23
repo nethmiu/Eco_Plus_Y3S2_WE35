@@ -315,6 +315,8 @@ export default function AdminDashboard({ navigation }) {
         );
     };
 
+    
+
     if (loading) {
         return <ElegantLoader />;
     }
@@ -415,6 +417,14 @@ export default function AdminDashboard({ navigation }) {
                                 title="Manage Challenges"
                                 icon="⚙️"
                                 onPress={() => navigation.navigate('ManageChallenges')}
+                                variant="secondary"
+                                delay={800}
+                            />
+
+                            <ActionButton
+                                title="Register New User"
+                                icon="⚙️"
+                                onPress={() => navigation.navigate('AdminRegistration')}
                                 variant="secondary"
                                 delay={800}
                             />

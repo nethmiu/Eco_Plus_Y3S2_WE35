@@ -25,7 +25,8 @@ const userSchema = new mongoose.Schema({
     },
     householdMembers: {
         type: Number,
-        required: [true, 'Please provide the number of household members'],
+        
+        default: 1,
     },
     address: {
         type: String,

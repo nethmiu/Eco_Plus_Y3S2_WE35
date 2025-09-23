@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post('/register', userController.registerUser);
 router.post('/login', userController.loginUser);
+router.post('/admin-register', userController.Adminregistration);
 
 // This is a protected route. User must have a valid token to access it.
 router.get('/me', authMiddleware.protect, userController.getMe);

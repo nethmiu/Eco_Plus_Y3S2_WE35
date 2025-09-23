@@ -18,6 +18,7 @@ import ChallengeListScreen from './screens/ChallengeListScreen';
 import ManageChallengesScreen from './screens/ManageChallengesScreen';
 
 import AdminDashboard from './screens/AdminDashboard';
+import AdminRegistrationScreen from './screens/AdminRegistrationScreen';
 import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
 import MapScreen from './screens/MapScreen';
 
@@ -40,6 +41,11 @@ export default function App() {
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+        <Stack.Screen 
+            name="AdminRegistration" 
+            component={AdminRegistrationScreen} 
+            options={{ title: 'Create New User' }} 
+        />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
 
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />
