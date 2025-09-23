@@ -11,5 +11,6 @@ router.post('/login', userController.loginUser);
 router.get('/me', authMiddleware.protect, userController.getMe);
 router.patch('/updateMe', authMiddleware.protect,userController.updateMe);
 router.patch('/updatePassword',authMiddleware.protect, userController.updatePassword);
+router.delete('/deleteMe', authMiddleware.protect, userController.deleteMe);
 
 module.exports = router;

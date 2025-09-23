@@ -11,7 +11,8 @@ import {
     StatusBar,
     Dimensions,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Modal
 } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
@@ -85,12 +86,115 @@ const ActionButton = ({ title, onPress, disabled, color, icon, style, loading })
     </TouchableOpacity>
 );
 
+// Email Confirmation Modal Component
+const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmail }) => {
+    const [confirmationEmail, setConfirmationEmail] = useState('');
+    const [emailError, setEmailError] = useState('');
+
+    const handleConfirm = () => {
+        // Reset error
+        setEmailError('');
+        
+        // Validate email
+        if (!confirmationEmail.trim()) {
+            setEmailError('Please enter your email address');
+            return;
+        }
+
+        // Check if emails match (case insensitive)
+        if (confirmationEmail.toLowerCase().trim() !== userEmail.toLowerCase().trim()) {
+            setEmailError('Email does not match your account email');
+            return;
+        }
+
+        // If validation passes, proceed with deletion
+        onConfirm();
+        setConfirmationEmail(''); // Clear the field after confirmation
+    };
+
+    const handleClose = () => {
+        setConfirmationEmail('');
+        setEmailError('');
+        onClose();
+    };
+
+    return (
+        <Modal
+            visible={visible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={handleClose}
+        >
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Ionicons name="warning" size={48} color="#D9534F" />
+                        <Text style={styles.modalTitle}>Delete Account</Text>
+                        <Text style={styles.modalSubtitle}>
+                            This action cannot be undone. All your data will be permanently deleted.
+                        </Text>
+                    </View>
+
+                    <View style={styles.modalContent}>
+                        <Text style={styles.confirmationText}>
+                            To confirm deletion, please type your email address:
+                        </Text>
+                        <Text style={styles.userEmailDisplay}>
+                            Your email: {userEmail}
+                        </Text>
+                        
+                        <TextInput
+                            style={[styles.confirmationInput, emailError && styles.inputError]}
+                            value={confirmationEmail}
+                            onChangeText={(text) => {
+                                setConfirmationEmail(text);
+                                setEmailError(''); // Clear error when user types
+                            }}
+                            placeholder="Type your email address"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        
+                        {emailError ? (
+                            <Text style={styles.errorText}>{emailError}</Text>
+                        ) : null}
+                    </View>
+
+                    <View style={styles.modalButtons}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.cancelButton]}
+                            onPress={handleClose}
+                            disabled={loading}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.deleteButton]}
+                            onPress={handleConfirm}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={styles.deleteButtonText}>Delete Account</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+};
+
 export default function ProfileScreen({ route, navigation }) {
     const [formData, setFormData] = useState(null);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState({
         current: false,
         new: false,
@@ -173,6 +277,43 @@ export default function ProfileScreen({ route, navigation }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDeleteAccountInitiate = () => {
+        setDeleteModalVisible(true);
+    };
+
+    const handleDeleteAccountConfirm = async () => {
+        setLoading(true);
+        try {
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            await axios.delete(`${API_URL}/deleteMe`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Token එක ඉවත් කර Login screen එකට යැවීම
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            setDeleteModalVisible(false);
+            Alert.alert(
+                'Account Deleted', 
+                'Your account has been successfully deleted.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => navigation.replace('Login')
+                    }
+                ]
+            );
+
+        } catch (error) {
+            Alert.alert('Deletion Failed', error.response?.data?.message || 'Could not delete your account.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalVisible(false);
     };
 
     // Function to focus on new password field
@@ -350,13 +491,34 @@ export default function ProfileScreen({ route, navigation }) {
                             loading={loading}
                         />
                     </View>
+
+                    {/* Danger Zone */}
+                    <View style={styles.dangerZone}>
+                        <ActionButton
+                            title="Delete My Profile"
+                            onPress={handleDeleteAccountInitiate}
+                            disabled={loading}
+                            color="#D9534F"
+                            icon="trash"
+                            loading={loading}
+                        />
+                    </View>
                 </ScrollView>
+
+                {/* Email Confirmation Modal */}
+                <EmailConfirmationModal
+                    visible={deleteModalVisible}
+                    onClose={handleCloseDeleteModal}
+                    onConfirm={handleDeleteAccountConfirm}
+                    loading={loading}
+                    userEmail={formData.email}
+                />
             </KeyboardAvoidingView>
         </>
     );
 }
 
-// Keep the same styles as before
+// Updated styles with modal styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -516,5 +678,121 @@ const styles = StyleSheet.create({
     },
     secondaryButton: {
         marginTop: 10,
+    },
+    dangerZone: {
+        marginHorizontal: 20,
+        marginTop: 10,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#E9ECEF',
+    },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    modalContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    modalHeader: {
+        alignItems: 'center',
+        paddingTop: 30,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#D9534F',
+        marginTop: 15,
+        marginBottom: 10,
+    },
+    modalSubtitle: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    modalContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    confirmationText: {
+        fontSize: 16,
+        color: '#495057',
+        marginBottom: 10,
+        fontWeight: '500',
+    },
+    userEmailDisplay: {
+        fontSize: 14,
+        color: '#28A745',
+        marginBottom: 15,
+        fontWeight: '600',
+        backgroundColor: '#F8F9FA',
+        padding: 10,
+        borderRadius: 8,
+        borderLeftWidth: 4,
+        borderLeftColor: '#28A745',
+    },
+    confirmationInput: {
+        height: 50,
+        borderColor: '#E9ECEF',
+        borderWidth: 2,
+        paddingHorizontal: 15,
+        borderRadius: 12,
+        fontSize: 16,
+        backgroundColor: '#F8F9FA',
+        color: '#2C3E50',
+    },
+    inputError: {
+        borderColor: '#D9534F',
+        backgroundColor: '#FFF5F5',
+    },
+    errorText: {
+        color: '#D9534F',
+        fontSize: 14,
+        marginTop: 8,
+        fontWeight: '500',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        gap: 15,
+    },
+    modalButton: {
+        flex: 1,
+        height: 50,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#6C757D',
+    },
+    cancelButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    deleteButton: {
+        backgroundColor: '#D9534F',
+    },
+    deleteButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

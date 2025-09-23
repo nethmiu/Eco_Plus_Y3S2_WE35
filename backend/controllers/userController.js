@@ -110,3 +110,16 @@ exports.getMe = async (req, res) => {
         data: { user },
     });
 };
+
+exports.deleteMe = async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.user.id);
+
+        res.status(204).json({
+            status: 'success',
+            data: null
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Error deleting account.' });
+    }
+};
