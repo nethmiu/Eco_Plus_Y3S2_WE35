@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const { sendWelcomeEmail } = require('../utils/email');
 const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
@@ -71,6 +72,17 @@ exports.registerUser = async (req, res) => {
             name, email, password, householdMembers, address, city,
         });
 
+        
+        try {
+            // After user creating send welcome email
+            await sendWelcomeEmail(newUser.email, newUser.name);
+        } catch (emailError) {
+            // If failed to send email, log the error
+            // but do not prevent user registration
+            console.error('There was an error sending the welcome email:', emailError);
+        }
+        
+
         createSendToken(newUser, 201, res);
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
@@ -100,7 +112,7 @@ exports.loginUser = async (req, res) => {
 exports.updateMe = async (req, res) => {
     try {
         const filteredBody = { ...req.body };
-        // User ට update කිරීමට අවසර නැති fields ඉවත් කිරීම
+        // remove fields that are not allowed to be updated
         const disallowedFields = ['password', 'role', 'status'];
         disallowedFields.forEach(el => delete filteredBody[el]);
 
@@ -130,26 +142,26 @@ exports.updateMe = async (req, res) => {
 
 exports.updatePassword = async (req, res) => {
     try {
-        // 1. User ව DB එකෙන් ලබාගැනීම (password එකත් සමඟ)
+        // 1. get user from db with password
         const user = await User.findById(req.user.id).select('+password');
 
         const { currentPassword, newPassword, confirmPassword } = req.body;
         
-        // 2. දැනට ඇති password එක නිවැරදිදැයි පරීක්ෂා කිරීම
+        // 2. check if posted current password is correct
         if (!currentPassword || !(await user.correctPassword(currentPassword, user.password))) {
             return res.status(401).json({ status: 'fail', message: 'Your current password is wrong.' });
         }
 
-        // 3. අලුත් password දෙක සමානදැයි පරීක්ෂා කිරීම
+        // 3. check if new password and confirm password match
         if (newPassword !== confirmPassword) {
             return res.status(400).json({ status: 'fail', message: 'New password and confirm password do not match.' });
         }
 
-        // 4. User ගේ password එක update කර save කිරීම
+        // 4. update user password and save
         user.password = newPassword;
         await user.save();
 
-        // 5. අලුත් token එකක් යවා user ව නැවත log කිරීම
+        // 5. send new token to user for re-login
         createSendToken(user, 200, res);
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'An error occurred while changing the password.' });
