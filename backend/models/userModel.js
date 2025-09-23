@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide your city'],
     },
+    photo: {
+        type: String,
+        default: 'default.jpg',
+    },
     status: {
         type: String,
         enum: ['active', 'inactive'],

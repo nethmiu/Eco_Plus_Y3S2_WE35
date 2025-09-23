@@ -10,7 +10,8 @@ import {
     StatusBar,
     Animated,
     Dimensions,
-    SafeAreaView
+    SafeAreaView,
+    Image
 } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
@@ -73,16 +74,51 @@ const ActionButton = React.memo(({
     );
 });
 
+// Profile Avatar Component
+const ProfileAvatar = React.memo(({ user }) => {
+    const [imageError, setImageError] = useState(false);
+    
+    const getProfileImageUrl = () => {
+        if (user?.photo && user.photo !== 'default.jpg') {
+            return `http://${config.IP}:${config.PORT}/api/users/uploads/users/${user.photo}`;
+        }
+        return null;
+    };
+
+    const profileImageUrl = getProfileImageUrl();
+
+    if (profileImageUrl && !imageError) {
+        return (
+            <View style={styles.avatarContainer}>
+                <Image
+                    source={{ uri: profileImageUrl }}
+                    style={styles.profileImage}
+                    onError={() => setImageError(true)}
+                />
+                <View style={styles.onlineIndicator} />
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.avatarContainer}>
+            <MaterialCommunityIcons name="account-circle" size={48} color="#667EEA" />
+        </View>
+    );
+});
+
 // Info Card Component
 const InfoCard = React.memo(({ user, onEditProfile }) => (
     <Animated.View style={styles.infoCard}>
         <View style={styles.cardHeader}>
-            <View style={styles.avatarContainer}>
-                <MaterialCommunityIcons name="account-circle" size={48} color="#667EEA" />
-            </View>
+            <ProfileAvatar user={user} />
             <View style={styles.userInfo}>
                 <Text style={styles.userName}>{user?.name}</Text>
                 <Text style={styles.userEmail}>{user?.email}</Text>
+                <View style={styles.statusBadge}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>Active</Text>
+                </View>
             </View>
         </View>
         
@@ -94,6 +130,12 @@ const InfoCard = React.memo(({ user, onEditProfile }) => (
                 iconLibrary="MaterialCommunityIcons"
                 label="City" 
                 value={user?.city} 
+            />
+            <InfoRow 
+                icon="home-account" 
+                iconLibrary="MaterialCommunityIcons"
+                label="Address" 
+                value={user?.address} 
             />
             <InfoRow 
                 icon="account-group" 
@@ -278,7 +320,7 @@ export default function HomeScreen({ navigation }) {
                     ]}
                 >
                     <View style={styles.heroContent}>
-                        <Text style={styles.heroTitle}>Welcome, {user?.name}! 👋</Text>
+                        <Text style={styles.heroTitle}>Welcome back, {user?.name}!</Text>
                         <Text style={styles.heroSubtitle}>Let's track your sustainability journey</Text>
                     </View>
                 </Animated.View>
@@ -414,13 +456,33 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     avatarContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 70,
+        height: 70,
+        borderRadius: 35,
         backgroundColor: '#f7fafc',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
+        position: 'relative',
+        borderWidth: 3,
+        borderColor: '#667EEA',
+    },
+    profileImage: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        resizeMode: 'cover',
+    },
+    onlineIndicator: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: '#4CAF50',
+        borderWidth: 2,
+        borderColor: '#fff',
     },
     userInfo: {
         flex: 1,
@@ -434,6 +496,28 @@ const styles = StyleSheet.create({
     userEmail: {
         fontSize: 14,
         color: '#718096',
+        marginBottom: 8,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0fff4',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#4CAF50',
+        marginRight: 6,
+    },
+    statusText: {
+        fontSize: 12,
+        color: '#2d7738',
+        fontWeight: '600',
     },
     cardDivider: {
         height: 1,

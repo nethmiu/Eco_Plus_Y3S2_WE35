@@ -1,5 +1,9 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
 
 const signToken = id => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -18,9 +22,49 @@ const createSendToken = (user, statusCode, res) => {
     });
 };
 
+// Configure multer for file upload
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Not an image! Please upload only images.'), false);
+    }
+};
+
+const upload = multer({
+    storage: multerStorage,
+    fileFilter: multerFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+});
+
+exports.uploadUserPhoto = upload.single('photo');
+
+exports.resizeUserPhoto = async (req, res, next) => {
+    if (!req.file) return next();
+
+    req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, '..', 'uploads', 'users');
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    await sharp(req.file.buffer)
+        .resize(500, 500)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(path.join(uploadsDir, req.file.filename));
+
+    next();
+};
+
 exports.registerUser = async (req, res) => {
     try {
-        // fingerprintDescriptor is no longer needed here
         const { name, email, password, householdMembers, address, city } = req.body;
 
         const newUser = await User.create({
@@ -30,7 +74,6 @@ exports.registerUser = async (req, res) => {
         createSendToken(newUser, 201, res);
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
-        
     }
 };
 
@@ -51,15 +94,28 @@ exports.loginUser = async (req, res) => {
         createSendToken(user, 200, res);
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'Something went wrong!' });
-        
     }
 };
+
 exports.updateMe = async (req, res) => {
     try {
         const filteredBody = { ...req.body };
         // User ට update කිරීමට අවසර නැති fields ඉවත් කිරීම
         const disallowedFields = ['password', 'role', 'status'];
         disallowedFields.forEach(el => delete filteredBody[el]);
+
+        // Add photo to update if uploaded
+        if (req.file) {
+            // Delete old photo if exists
+            const currentUser = await User.findById(req.user.id);
+            if (currentUser.photo && currentUser.photo !== 'default.jpg') {
+                const oldPhotoPath = path.join(__dirname, '..', 'uploads', 'users', currentUser.photo);
+                if (fs.existsSync(oldPhotoPath)) {
+                    fs.unlinkSync(oldPhotoPath);
+                }
+            }
+            filteredBody.photo = req.file.filename;
+        }
 
         const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
             new: true,
@@ -100,6 +156,34 @@ exports.updatePassword = async (req, res) => {
     }
 };
 
+exports.deleteMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({ status: 'fail', message: 'User not found.' });
+        }
+
+        // Delete user's profile photo if exists
+        if (user.photo && user.photo !== 'default.jpg') {
+            const photoPath = path.join(__dirname, '..', 'uploads', 'users', user.photo);
+            if (fs.existsSync(photoPath)) {
+                fs.unlinkSync(photoPath);
+            }
+        }
+
+        // Delete the user account
+        await User.findByIdAndDelete(req.user.id);
+
+        res.status(204).json({
+            status: 'success',
+            data: null
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'An error occurred while deleting the account.' });
+    }
+};
+
 // This function gets the current user's data if they provide a valid token
 exports.getMe = async (req, res) => {
     // The user data is attached to req.user by the 'protect' middleware
@@ -109,17 +193,4 @@ exports.getMe = async (req, res) => {
         status: 'success',
         data: { user },
     });
-};
-
-exports.deleteMe = async (req, res) => {
-    try {
-        await User.findByIdAndDelete(req.user.id);
-
-        res.status(204).json({
-            status: 'success',
-            data: null
-        });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: 'Error deleting account.' });
-    }
 };

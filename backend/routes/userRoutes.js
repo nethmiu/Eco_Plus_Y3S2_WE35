@@ -1,6 +1,7 @@
 const express = require('express');
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware'); 
+const path = require('path');
 
 const router = express.Router();
 
@@ -9,8 +10,16 @@ router.post('/login', userController.loginUser);
 
 // This is a protected route. User must have a valid token to access it.
 router.get('/me', authMiddleware.protect, userController.getMe);
-router.patch('/updateMe', authMiddleware.protect,userController.updateMe);
-router.patch('/updatePassword',authMiddleware.protect, userController.updatePassword);
+router.patch('/updateMe', 
+    authMiddleware.protect,
+    userController.uploadUserPhoto,
+    userController.resizeUserPhoto,
+    userController.updateMe
+);
+router.patch('/updatePassword', authMiddleware.protect, userController.updatePassword);
 router.delete('/deleteMe', authMiddleware.protect, userController.deleteMe);
+
+// Serve uploaded images
+router.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 module.exports = router;

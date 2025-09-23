@@ -12,12 +12,14 @@ import {
     Dimensions,
     KeyboardAvoidingView,
     Platform,
-    Modal
+    Modal,
+    Image
 } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import config from '../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
@@ -195,6 +197,7 @@ export default function ProfileScreen({ route, navigation }) {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [profileImage, setProfileImage] = useState(null);
     const [passwordVisible, setPasswordVisible] = useState({
         current: false,
         new: false,
@@ -204,6 +207,18 @@ export default function ProfileScreen({ route, navigation }) {
     // Refs for password fields to manage focus
     const newPasswordRef = React.useRef();
     const confirmPasswordRef = React.useRef();
+
+    // Request camera permissions
+    useEffect(() => {
+        (async () => {
+            const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
+            const mediaLibraryResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (cameraResult.status !== 'granted' || mediaLibraryResult.status !== 'granted') {
+                Alert.alert('Permission Required', 'Sorry, we need camera and photo library permissions to update your profile photo.');
+            }
+        })();
+    }, []);
 
     // Screen එකට මුලින්ම එන විට user දත්ත state එකට ලබා දීම
     useEffect(() => {
@@ -215,6 +230,11 @@ export default function ProfileScreen({ route, navigation }) {
                 city: route.params.user.city || srilankanCities[0],
                 householdMembers: route.params.user.householdMembers?.toString() || '',
             });
+
+            // Set profile image if exists
+            if (route.params.user.photo && route.params.user.photo !== 'default.jpg') {
+                setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${route.params.user.photo}`);
+            }
         }
     }, [route.params?.user]);
 
@@ -227,19 +247,101 @@ export default function ProfileScreen({ route, navigation }) {
         setPasswordVisible(prev => ({ ...prev, [field]: !prev[field] }));
     }, []);
 
+    const pickImage = async () => {
+        Alert.alert(
+            "Select Photo",
+            "Choose how you want to select a photo",
+            [
+                {
+                    text: "Camera",
+                    onPress: openCamera,
+                },
+                {
+                    text: "Photo Library",
+                    onPress: openImagePicker,
+                },
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+            ],
+            { cancelable: true }
+        );
+    };
+
+    const openCamera = async () => {
+        try {
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setProfileImage(result.assets[0].uri);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to take photo');
+        }
+    };
+
+    const openImagePicker = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setProfileImage(result.assets[0].uri);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to pick image');
+        }
+    };
+
     const handleUpdateDetails = async () => {
         setLoading(true);
         try {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
-            const updatedData = {
-                ...formData,
-                householdMembers: Number(formData.householdMembers)
-            };
-            await axios.patch(`${API_URL}/updateMe`, updatedData, {
-                headers: { Authorization: `Bearer ${token}` }
+            
+            // Create FormData for file upload
+            const formDataToSend = new FormData();
+            
+            // Add text fields
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('email', formData.email);
+            formDataToSend.append('address', formData.address);
+            formDataToSend.append('city', formData.city);
+            formDataToSend.append('householdMembers', Number(formData.householdMembers));
+
+            // Add photo if selected and it's a new local image
+            if (profileImage && profileImage.startsWith('file://')) {
+                formDataToSend.append('photo', {
+                    uri: profileImage,
+                    type: 'image/jpeg',
+                    name: 'profile-photo.jpg',
+                });
+            }
+
+            const response = await axios.patch(`${API_URL}/updateMe`, formDataToSend, {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                }
             });
+
+            // Update the profile image URL if a new photo was uploaded
+            if (response.data.data.user.photo && profileImage && profileImage.startsWith('file://')) {
+                setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${response.data.data.user.photo}`);
+            }
+
             Alert.alert('Success', 'Your details have been updated.');
         } catch (error) {
+            console.error('Update error:', error);
             Alert.alert('Update Failed', error.response?.data?.message || 'Could not update details.');
         } finally {
             setLoading(false);
@@ -350,9 +452,18 @@ export default function ProfileScreen({ route, navigation }) {
                 >
                     {/* Header */}
                     <View style={styles.header}>
-                        <View style={styles.profileIcon}>
-                            <Ionicons name="person" size={40} color="#4A90E2" />
-                        </View>
+                        <TouchableOpacity style={styles.profileImageContainer} onPress={pickImage}>
+                            {profileImage ? (
+                                <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                            ) : (
+                                <View style={styles.profileIcon}>
+                                    <Ionicons name="person" size={40} color="#4A90E2" />
+                                </View>
+                            )}
+                            <View style={styles.cameraIconContainer}>
+                                <Ionicons name="camera" size={20} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
                         <Text style={styles.title}>Edit Profile</Text>
                         <Text style={styles.subtitle}>Update your personal information</Text>
                     </View>
@@ -494,6 +605,13 @@ export default function ProfileScreen({ route, navigation }) {
 
                     {/* Danger Zone */}
                     <View style={styles.dangerZone}>
+                        <View style={styles.dangerZoneHeader}>
+                            <Ionicons name="warning" size={24} color="#D9534F" />
+                            <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
+                        </View>
+                        <Text style={styles.dangerZoneDescription}>
+                            Once you delete your account, there is no going back. Please be certain.
+                        </Text>
                         <ActionButton
                             title="Delete My Profile"
                             onPress={handleDeleteAccountInitiate}
@@ -518,7 +636,7 @@ export default function ProfileScreen({ route, navigation }) {
     );
 }
 
-// Updated styles with modal styles
+// Complete styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -552,14 +670,39 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 5,
     },
+    profileImageContainer: {
+        position: 'relative',
+        marginBottom: 15,
+    },
+    profileImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 4,
+        borderColor: '#4A90E2',
+    },
     profileIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         backgroundColor: '#E8F4FD',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 15,
+        borderWidth: 4,
+        borderColor: '#4A90E2',
+    },
+    cameraIconContainer: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 35,
+        height: 35,
+        borderRadius: 17.5,
+        backgroundColor: '#4A90E2',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#fff',
     },
     title: {
         fontSize: 28,
@@ -683,8 +826,31 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginTop: 10,
         paddingTop: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#E9ECEF',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        borderTopWidth: 2,
+        borderTopColor: '#FFE6E6',
+        backgroundColor: '#FFF5F5',
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#FFD6D6',
+    },
+    dangerZoneHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    dangerZoneTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#D9534F',
+        marginLeft: 8,
+    },
+    dangerZoneDescription: {
+        fontSize: 14,
+        color: '#721C24',
+        marginBottom: 15,
+        lineHeight: 20,
     },
 
     // Modal Styles
