@@ -137,28 +137,46 @@ export default function ManageUsersScreen({ navigation }) {
         setLoading(true);
         try {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
-            const response = await axios.get(`${API_URL}/admin/users`, {
+            if (!token) {
+                navigation.replace('Login');
+                return;
+            }
+
+            // Step 1: Verify if the current user is an Admin
+            const meResponse = await axios.get(`${API_URL}/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (meResponse.data.data.user.role !== 'Admin') {
+                Alert.alert('Access Denied', 'You do not have permission to view this page.');
+                await SecureStore.deleteItemAsync(TOKEN_KEY);
+                navigation.replace('Login');
+                return;
+            }
+
+            // Step 2: If Admin, fetch all users
+            const usersResponse = await axios.get(`${API_URL}/admin/users`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setUsers(response.data.data.users);
+            setUsers(usersResponse.data.data.users);
+
         } catch (error) {
-            Alert.alert('Error', 'Failed to fetch users.');
+            Alert.alert('Error', 'An error occurred. Please log in again.');
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            navigation.replace('Login');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [navigation]);
 
     useEffect(() => {
         let result = users;
         if (searchQuery.trim() !== '') {
             const query = searchQuery.toLowerCase().trim();
-            // --- වෙනස් කළ කොටස ---
-            // .includes() වෙනුවට .startsWith() භාවිතා කර ඇත
             result = result.filter(user => 
                 user.name.toLowerCase().startsWith(query) ||
                 user.email.toLowerCase().startsWith(query)
             );
-            // -----------------------
         }
         if (roleFilter !== 'All') { result = result.filter(user => user.role === roleFilter); }
         if (statusFilter !== 'All') { result = result.filter(user => user.status === statusFilter); }
@@ -258,8 +276,8 @@ export default function ManageUsersScreen({ navigation }) {
         </View>
     );
 
-    if (loading && users.length === 0) {
-        return ( <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#6366f1" /><Text style={styles.loadingText}>Loading users...</Text></View> );
+    if (loading) {
+        return ( <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#6366f1" /><Text style={styles.loadingText}>Verifying access and loading users...</Text></View> );
     }
 
     return (
@@ -293,7 +311,7 @@ export default function ManageUsersScreen({ navigation }) {
                         <Text style={styles.emptyStateSubtext}>
                             {roleFilter !== 'All' || statusFilter !== 'All' || searchQuery !== ''
                                 ? "Try adjusting your search or filters"
-                                : "No users available"}
+                                : "No users available in the system"}
                         </Text>
                     </View>
                 }
