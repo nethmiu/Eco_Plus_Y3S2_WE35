@@ -25,6 +25,9 @@ import ManageUsersScreen from './screens/ManageUsersScreen';
 import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
 import MapScreen from './screens/MapScreen';
 
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
+
 
 // 🔹 Import DashboardScreen
 import DashboardScreen from './screens/DashboardScreen';
@@ -40,6 +43,8 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'Forgot Password' }} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: 'Reset Password' }} />
         
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />

@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide your city'],
     },
+    passwordResetOTP: String,
+    passwordResetExpires: Date,
     photo: {
         type: String,
         default: 'default.jpg',
