@@ -109,7 +109,7 @@ export default function EnvironmentalistDashboard({ navigation }) {
                             </View>
                         )}
                         <View style={styles.welcomeSection}>
-                            <Text style={styles.welcomeText}>Welcome back,</Text>
+                            
                             <Text style={styles.userName}>{user?.name || 'Environmentalist'}</Text>
                             <Text style={styles.userRole}>Environmental Specialist</Text>
                         </View>

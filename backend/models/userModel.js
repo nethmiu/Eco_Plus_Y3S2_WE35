@@ -67,10 +67,7 @@ const userSchema = new mongoose.Schema({
         'Environmental Education',
         'Carbon Footprint Analysis',
         'Green Technology'
-    ],
-    required: function() {
-        return this.role === 'Environmentalist';
-    }
+    ]
 },
 bio: {
     type: String,
