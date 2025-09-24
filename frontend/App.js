@@ -8,6 +8,8 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen'; 
 import ProfileScreen from './screens/ProfileScreen';
+import EditAdminProfile from './screens/EditAdminProfile';
+import EditEnvProfile from './screens/EditEnvProfile';
 
 import ElectricityDataScreen from './screens/ElectricityDataScreen';
 import WaterDataScreen from './screens/WaterDataScreen';
@@ -49,6 +51,8 @@ export default function App() {
             options={{ title: 'Create New User' }} 
         />
         <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
+        <Stack.Screen name="EditAdminProfile" component={EditAdminProfile} />
+        <Stack.Screen name="EditEnvProfile" component={EditEnvProfile} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
 
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />

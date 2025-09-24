@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View, Text, FlatList, StyleSheet, Alert, TouchableOpacity,
     ActivityIndicator, Modal, TextInput, RefreshControl, ScrollView,
-    KeyboardAvoidingView, Platform
+    KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
@@ -22,6 +22,43 @@ const getRoleColor = (role) => {
         case 'User': return '#3b82f6';
         default: return '#6b7280';
     }
+};
+
+// User Avatar Component to handle profile photos
+const UserAvatar = ({ user, size = 44 }) => {
+    const [imageError, setImageError] = useState(false);
+    
+    // Safety check for user object
+    if (!user) {
+        return (
+            <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
+                <Text style={[styles.avatarInitial, { fontSize: size * 0.4 }]}>?</Text>
+            </View>
+        );
+    }
+    
+    const hasPhoto = user.photo && user.photo !== 'default.jpg' && !imageError;
+    
+    if (hasPhoto) {
+        return (
+            <Image 
+                source={{ 
+                    uri: `http://${config.IP}:${config.PORT}/api/users/uploads/users/${user.photo}` 
+                }}
+                style={[styles.profileImage, { width: size, height: size, borderRadius: size / 2 }]}
+                onError={() => setImageError(true)}
+            />
+        );
+    }
+    
+    // Fallback to icon with user's initial
+    return (
+        <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
+            <Text style={[styles.avatarInitial, { fontSize: size * 0.4 }]}>
+                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </Text>
+        </View>
+    );
 };
 
 const StatisticsCard = ({ icon, title, count, color, onPress }) => (
@@ -250,7 +287,7 @@ export default function ManageUsersScreen({ navigation }) {
         <View style={styles.userCard}>
             <View style={styles.userInfo}>
                 <View style={styles.avatarContainer}>
-                    <Ionicons name="person-circle" size={44} color="#8b5cf6" />
+                    <UserAvatar user={item} size={44} />
                     <View style={[styles.statusIndicator, { backgroundColor: item.status === 'active' ? '#10b981' : '#ef4444' }]} />
                 </View>
                 <View style={styles.userDetails}>
@@ -329,7 +366,9 @@ export default function ManageUsersScreen({ navigation }) {
                     >
                         <View style={styles.modalContainer}>
                             <View style={styles.modalHeader}>
-                                <Ionicons name="person-circle" size={28} color="#6366f1" />
+                                <View style={styles.modalAvatarContainer}>
+                                    <UserAvatar user={currentUser} size={56} />
+                                </View>
                                 <Text style={styles.modalTitle}>Edit User</Text>
                             </View>
                             <Text style={styles.modalSubtitle}>{currentUser?.name}</Text>
@@ -417,6 +456,7 @@ export default function ManageUsersScreen({ navigation }) {
         </View>
     );
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -643,6 +683,23 @@ const styles = StyleSheet.create({
         position: 'relative',
         marginRight: 16
     },
+    // Profile Image Styles
+    profileImage: {
+        resizeMode: 'cover',
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+    },
+    avatarFallback: {
+        backgroundColor: '#8b5cf6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+    },
+    avatarInitial: {
+        color: '#ffffff',
+        fontWeight: '600',
+    },
     statusIndicator: {
         width: 12,
         height: 12,
@@ -728,11 +785,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginBottom: 8
     },
+    modalAvatarContainer: {
+        marginRight: 12
+    },
     modalTitle: {
         fontSize: 24,
         fontWeight: '700',
         color: '#1f2937',
-        marginLeft: 8
     },
     modalSubtitle: {
         fontSize: 16,
