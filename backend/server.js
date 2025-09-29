@@ -3,8 +3,12 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
+// Core routes required for the whole application
 const userRoutes = require('./routes/userRoutes');
 const dataRoutes = require('./routes/dataRoutes');
+
+// Consolidated Challenge Routes (Handles all challenge/gamification endpoints)
 const challengeRoutes = require('./routes/challengeRoutes'); 
 
 dotenv.config();
@@ -27,12 +31,14 @@ app.get('/', (req, res) => {
   res.send('Eco Pulse API is running...');
 });
 
-// User Routes
+// User Routes (Authentication, Profiles, Admin Management)
 app.use('/api/users', userRoutes);
+
+// Data Routes (Electricity, Water, Waste usage input/history)
 app.use('/api/data', dataRoutes);
 
-// Challenge Routes (අලුතින් එකතු කළා)
-app.use('/api/challenges', challengeRoutes);
+// Challenge Routes (CRUD, Join, Leaderboard, Stats)
+app.use('/api/challenges', challengeRoutes); 
 
 
 const PORT = process.env.PORT || 5000;
