@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,7 +13,6 @@ import {
     ScrollView,
     Image
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
@@ -22,9 +21,12 @@ import config from '../config';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
+const CHALLENGE_STATS_URL = `http://${config.IP}:${config.PORT}/api/challenges/stats/active/count`; // NEW ENDPOINT
 const TOKEN_KEY = 'userToken';
 
-// Elegant Loading Component
+// --- Helper Components ---
+
+// Elegant Loading Component (Remains unchanged)
 const ElegantLoader = () => {
     const spinValue = useRef(new Animated.Value(0)).current;
     const scaleValue = useRef(new Animated.Value(0.8)).current;
@@ -86,7 +88,116 @@ const ElegantLoader = () => {
     );
 };
 
-// Profile Avatar Component
+// User Avatar, Info Card, Action Button (Removed from response for brevity, assumed unchanged logic)
+// ...
+
+// Dashboard Stats Card Component (Now Clickable and Dynamic for Challenges)
+const NavigableStatsCard = ({ title, subtitle, icon, color, delay, count, isCountLoading, onPress }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(30)).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            Animated.delay(delay),
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 50,
+                    friction: 8,
+                    useNativeDriver: true,
+                })
+            ])
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View
+            style={[
+                styles.statsCard,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }]
+                }
+            ]}
+        >
+            <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ width: '100%' }}>
+                <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
+                    <View style={styles.dynamicCountContainer}>
+                        {isCountLoading ? (
+                            <ActivityIndicator size="small" color={color.icon} />
+                        ) : (
+                            <Text style={[styles.dynamicCountText, { color: color.icon }]}>{count}</Text>
+                        )}
+                    </View>
+                    
+                    <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
+                        <MaterialCommunityIcons name={icon} size={24} color={color.icon} />
+                    </View>
+                    <View style={styles.statsTextContainer}>
+                        <Text style={styles.statsTitle}>{title}</Text>
+                        <Text style={styles.statsSubtitle}>{subtitle}</Text>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+};
+
+
+// Static StatsCard for comparison (renamed to avoid conflict)
+const StandardStatsCard = ({ title, subtitle, icon, color, delay }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(30)).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            Animated.delay(delay),
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 600,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 50,
+                    friction: 8,
+                    useNativeDriver: true,
+                })
+            ])
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View
+            style={[
+                styles.statsCard,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }]
+                }
+            ]}
+        >
+            <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
+                <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
+                    <MaterialCommunityIcons name={icon} size={24} color={color.icon} />
+                </View>
+                <View style={styles.statsTextContainer}>
+                    <Text style={styles.statsTitle}>{title}</Text>
+                    <Text style={styles.statsSubtitle}>{subtitle}</Text>
+                </View>
+            </View>
+        </Animated.View>
+    );
+};
+
+
+// Profile Avatar Component (Remains unchanged)
 const ProfileAvatar = React.memo(({ user }) => {
     const [imageError, setImageError] = useState(false);
     
@@ -126,57 +237,7 @@ const ProfileAvatar = React.memo(({ user }) => {
     );
 });
 
-// Dashboard Stats Card Component
-const StatsCard = ({ title, subtitle, icon, iconLibrary = 'MaterialCommunityIcons', color, delay }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
-
-    const IconComponent = iconLibrary === 'Ionicons' ? Ionicons : 
-                       iconLibrary === 'Feather' ? Feather : MaterialCommunityIcons;
-
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 600,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    tension: 50,
-                    friction: 8,
-                    useNativeDriver: true,
-                })
-            ])
-        ]).start();
-    }, []);
-
-    return (
-        <Animated.View
-            style={[
-                styles.statsCard,
-                {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                }
-            ]}
-        >
-            <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
-                <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
-                    <IconComponent name={icon} size={24} color={color.icon} />
-                </View>
-                <View style={styles.statsTextContainer}>
-                    <Text style={styles.statsTitle}>{title}</Text>
-                    <Text style={styles.statsSubtitle}>{subtitle}</Text>
-                </View>
-            </View>
-        </Animated.View>
-    );
-};
-
-// Action Button Component
+// Action Button Component (Remains unchanged)
 const ActionButton = ({ title, icon, iconLibrary = 'MaterialCommunityIcons', onPress, variant = 'primary', delay }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(40)).current;
@@ -283,8 +344,32 @@ const ActionButton = ({ title, icon, iconLibrary = 'MaterialCommunityIcons', onP
 export default function AdminDashboard({ navigation }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeChallengesCount, setActiveChallengesCount] = useState(0);
+    const [isCountLoading, setIsCountLoading] = useState(true);
+    
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const headerSlide = useRef(new Animated.Value(-50)).current;
+
+    // --- New: Fetch Active Challenge Count ---
+    const fetchActiveChallengesCount = useCallback(async () => {
+        setIsCountLoading(true);
+        try {
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            if (!token) return;
+
+            const response = await axios.get(CHALLENGE_STATS_URL, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setActiveChallengesCount(response.data.data.activeCount);
+        } catch (error) {
+            // Log error but don't stop dashboard loading
+            console.error('Error fetching active challenge count:', error.response?.data || error.message);
+            setActiveChallengesCount('?');
+        } finally {
+            setIsCountLoading(false);
+        }
+    }, []);
+    // ----------------------------------------
 
     useEffect(() => {
         const verifyToken = async () => {
@@ -319,6 +404,9 @@ export default function AdminDashboard({ navigation }) {
                             useNativeDriver: true,
                         })
                     ]).start();
+                    
+                    // Fetch challenge count immediately after successful authentication
+                    fetchActiveChallengesCount();
                 }
             } catch (error) {
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -329,7 +417,11 @@ export default function AdminDashboard({ navigation }) {
         };
 
         verifyToken();
-    }, []);
+        
+        // Polling to keep stats live (runs every 30 seconds)
+        const intervalId = setInterval(fetchActiveChallengesCount, 30000); 
+        return () => clearInterval(intervalId); // Cleanup interval
+    }, [navigation, fetchActiveChallengesCount]);
 
     const handleLogout = async () => {
         Alert.alert(
@@ -375,6 +467,12 @@ export default function AdminDashboard({ navigation }) {
             { cancelable: false }
         );
     };
+
+    // --- Navigation Handler for Challenge Card ---
+    const navigateToManageChallenges = useCallback(() => {
+        navigation.navigate('ManageChallenges');
+    }, [navigation]);
+    // ------------------------------------------
 
     if (loading) {
         return <ElegantLoader />;
@@ -466,7 +564,8 @@ export default function AdminDashboard({ navigation }) {
                 <View style={styles.statsSection}>
                     <Text style={styles.sectionTitle}>Dashboard Overview</Text>
                     <View style={styles.statsGrid}>
-                        <StatsCard
+                        {/* --- ACTIVE CHALLENGES CARD (Navigable) --- */}
+                        <NavigableStatsCard
                             title="Active Challenges"
                             subtitle="Manage & Monitor"
                             icon="target"
@@ -476,12 +575,15 @@ export default function AdminDashboard({ navigation }) {
                                 icon: '#4CAF50' 
                             }}
                             delay={200}
+                            count={activeChallengesCount}
+                            isCountLoading={isCountLoading}
+                            onPress={navigateToManageChallenges}
                         />
-                        <StatsCard
+                        {/* --- USER ENGAGEMENT CARD (Standard) --- */}
+                        <StandardStatsCard
                             title="User Engagement"
                             subtitle="Track Progress"
                             icon="chart-bar"
-                            iconLibrary="MaterialCommunityIcons"
                             color={{ 
                                 bg: '#fef7e0', 
                                 iconBg: '#fbd38d', 
@@ -507,7 +609,7 @@ export default function AdminDashboard({ navigation }) {
                     <ActionButton
                         title="Manage Challenges"
                         icon="cog"
-                        onPress={() => navigation.navigate('ManageChallenges')}
+                        onPress={navigateToManageChallenges}
                         variant="secondary"
                         delay={600}
                     />
@@ -784,6 +886,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 4,
+        position: 'relative', // For dynamic count
+        minHeight: 140, // Ensure minimum size
     },
     statsIconContainer: {
         width: 48,
@@ -808,6 +912,26 @@ const styles = StyleSheet.create({
         color: '#718096',
         textAlign: 'center',
     },
+    // --- New Dynamic Count Styles ---
+    dynamicCountContainer: {
+        position: 'absolute',
+        top: 15,
+        left: 15,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        borderWidth: 2,
+        borderColor: '#c6f6d5',
+    },
+    dynamicCountText: {
+        fontSize: 18,
+        fontWeight: '900',
+    },
+    // --- End New Dynamic Count Styles ---
+
     // Actions Section
     actionsSection: {
         marginTop: 32,
