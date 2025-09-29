@@ -14,6 +14,7 @@ const challengeSchema = new mongoose.Schema({
     goal: {
         type: Number,
         required: [true, 'Please provide a numerical goal for the challenge'],
+        min: 0,
     },
     unit: {
         type: String,
