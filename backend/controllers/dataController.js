@@ -1,6 +1,8 @@
 const ElectricityUsage = require('../models/electricityUsageModel');
 const WaterUsage = require('../models/waterUsageModel');
 const WasteUsage = require('../models/wasteUsageModel');
+const asyncHandler = require('express-async-handler'); 
+
 
 exports.addElectricityData = async (req, res) => {
     try {
@@ -140,6 +142,60 @@ exports.getWasteHistory = async (req, res) => {
         });
     }
 };
+exports.getDashboardData = asyncHandler(async (req, res) => {
+    // protect middleware eken user ge id eka gannawa
+    const userId = req.user.id; 
+
+    const electricityData = await ElectricityUsage.find({ user: userId });
+    const waterData = await WaterUsage.find({ user: userId });
+    const wasteData = await WasteUsage.find({ user: userId });
+
+    // 2. Eco Score Calculation
+    let ecoScore = 100;
+
+    // Electricity usage (1 unit = 0.2 points)
+    const totalElectricityUnits = electricityData.reduce((sum, item) => sum + item.units, 0);
+    ecoScore -= totalElectricityUnits * 0.2;
+
+    // Water usage (1 unit/liter = 0.1 points) - ube model eke units kiyala thiyenne
+    const totalWaterUnits = waterData.reduce((sum, item) => sum + item.units, 0);
+    ecoScore -= totalWaterUnits * 0.1;
+
+    // Waste calculation (1 bag = 0.3 points) - api bag ganana anuwa score eka hadamu
+    const totalWasteBags = wasteData.reduce((sum, item) => sum + item.plasticBags + item.paperBags + item.foodWasteBags, 0);
+    ecoScore -= totalWasteBags * 0.3; 
+
+   
+    ecoScore = Math.max(0, Math.round(ecoScore));
+
+    const chartData = {
+        labels: electricityData
+            .sort((a, b) => new Date(a.billingMonth) - new Date(b.billingMonth)) 
+            .slice(-6) 
+            .map(d => new Date(d.billingMonth).toLocaleString('default', { month: 'short' })),
+        datasets: [{
+            data: electricityData
+                .sort((a, b) => new Date(a.billingMonth) - new Date(b.billingMonth))
+                .slice(-6)
+                .map(d => d.units)
+        }],
+        legend: ["Electricity Usage (Units)"]
+    };
+    
+    
+    const keyMetrics = [
+        { id: 1, title: 'Total Water', value: `${totalWaterUnits} Units`, icon: 'water-outline' },
+        { id: 2, title: 'Total Electricity', value: `${totalElectricityUnits} Units`, icon: 'flash-outline' },
+        { id: 3, title: 'Total Waste Bags', value: `${totalWasteBags}`, icon: 'trash-can-outline' },
+    ];
+
+   
+    res.status(200).json({
+        ecoScore,
+        keyMetrics,
+        chartData
+    });
+});
 
 // Helper function to get week number
 function getWeekNumber(d) {
