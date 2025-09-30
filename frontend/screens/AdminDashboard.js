@@ -21,7 +21,7 @@ import config from '../config';
 
 const { width, height } = Dimensions.get('window');
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
-const CHALLENGE_STATS_URL = `http://${config.IP}:${config.PORT}/api/challenges/stats/active/count`; // NEW ENDPOINT
+// REMOVED: CHALLENGE_STATS_URL
 const TOKEN_KEY = 'userToken';
 
 // --- Helper Components ---
@@ -88,11 +88,8 @@ const ElegantLoader = () => {
     );
 };
 
-// User Avatar, Info Card, Action Button (Removed from response for brevity, assumed unchanged logic)
-// ...
-
-// Dashboard Stats Card Component (Now Clickable and Dynamic for Challenges)
-const NavigableStatsCard = ({ title, subtitle, icon, color, delay, count, isCountLoading, onPress }) => {
+// Dashboard Stats Card Component (Now Clickable and CLEANED)
+const StatsCard = ({ title, subtitle, icon, color, delay, onPress = null }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -114,84 +111,39 @@ const NavigableStatsCard = ({ title, subtitle, icon, color, delay, count, isCoun
             ])
         ]).start();
     }, []);
-
-    return (
-        <Animated.View
-            style={[
-                styles.statsCard,
-                {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                }
-            ]}
-        >
-            <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ width: '100%' }}>
-                <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
-                    <View style={styles.dynamicCountContainer}>
-                        {isCountLoading ? (
-                            <ActivityIndicator size="small" color={color.icon} />
-                        ) : (
-                            <Text style={[styles.dynamicCountText, { color: color.icon }]}>{count}</Text>
-                        )}
-                    </View>
-                    
-                    <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
-                        <MaterialCommunityIcons name={icon} size={24} color={color.icon} />
-                    </View>
-                    <View style={styles.statsTextContainer}>
-                        <Text style={styles.statsTitle}>{title}</Text>
-                        <Text style={styles.statsSubtitle}>{subtitle}</Text>
-                    </View>
-                </View>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-};
-
-
-// Static StatsCard for comparison (renamed to avoid conflict)
-const StandardStatsCard = ({ title, subtitle, icon, color, delay }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(30)).current;
-
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 600,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    tension: 50,
-                    friction: 8,
-                    useNativeDriver: true,
-                })
-            ])
-        ]).start();
-    }, []);
-
-    return (
-        <Animated.View
-            style={[
-                styles.statsCard,
-                {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                }
-            ]}
-        >
-            <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
-                <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
-                    <MaterialCommunityIcons name={icon} size={24} color={color.icon} />
-                </View>
-                <View style={styles.statsTextContainer}>
-                    <Text style={styles.statsTitle}>{title}</Text>
-                    <Text style={styles.statsSubtitle}>{subtitle}</Text>
-                </View>
+    
+    const content = (
+        <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
+            
+            {/* REMOVED: DYNAMIC COUNT BLOCK (Was causing 'N/A' issue) */}
+            
+            <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
+                <MaterialCommunityIcons name={icon} size={24} color={color.icon} />
             </View>
+            <View style={styles.statsTextContainer}>
+                <Text style={styles.statsTitle}>{title}</Text>
+                <Text style={styles.statsSubtitle}>{subtitle}</Text>
+            </View>
+        </View>
+    );
+
+    return (
+        <Animated.View
+            style={[
+                styles.statsCard,
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }]
+                }
+            ]}
+        >
+            {onPress ? (
+                <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ width: '100%' }}>
+                    {content}
+                </TouchableOpacity>
+            ) : (
+                content
+            )}
         </Animated.View>
     );
 };
@@ -329,7 +281,7 @@ const ActionButton = ({ title, icon, iconLibrary = 'MaterialCommunityIcons', onP
             >
                 <View style={styles.actionButtonContent}>
                     <View style={styles.actionButtonIcon}>
-                        <IconComponent name={icon} size={20} color="#FFFFFF" />
+                        <MaterialCommunityIcons name={icon} size={20} color="#FFFFFF" />
                     </View>
                     <Text style={styles.actionButtonText}>{title}</Text>
                     <View style={styles.actionButtonArrow}>
@@ -344,32 +296,12 @@ const ActionButton = ({ title, icon, iconLibrary = 'MaterialCommunityIcons', onP
 export default function AdminDashboard({ navigation }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeChallengesCount, setActiveChallengesCount] = useState(0);
-    const [isCountLoading, setIsCountLoading] = useState(true);
+    // REMOVED: activeChallengesCount, isCountLoading states
     
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const headerSlide = useRef(new Animated.Value(-50)).current;
 
-    // --- New: Fetch Active Challenge Count ---
-    const fetchActiveChallengesCount = useCallback(async () => {
-        setIsCountLoading(true);
-        try {
-            const token = await SecureStore.getItemAsync(TOKEN_KEY);
-            if (!token) return;
-
-            const response = await axios.get(CHALLENGE_STATS_URL, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setActiveChallengesCount(response.data.data.activeCount);
-        } catch (error) {
-            // Log error but don't stop dashboard loading
-            console.error('Error fetching active challenge count:', error.response?.data || error.message);
-            setActiveChallengesCount('?');
-        } finally {
-            setIsCountLoading(false);
-        }
-    }, []);
-    // ----------------------------------------
+    // REMOVED: fetchActiveChallengesCount and polling useEffect logic
 
     useEffect(() => {
         const verifyToken = async () => {
@@ -404,9 +336,6 @@ export default function AdminDashboard({ navigation }) {
                             useNativeDriver: true,
                         })
                     ]).start();
-                    
-                    // Fetch challenge count immediately after successful authentication
-                    fetchActiveChallengesCount();
                 }
             } catch (error) {
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
@@ -417,11 +346,8 @@ export default function AdminDashboard({ navigation }) {
         };
 
         verifyToken();
-        
-        // Polling to keep stats live (runs every 30 seconds)
-        const intervalId = setInterval(fetchActiveChallengesCount, 30000); 
-        return () => clearInterval(intervalId); // Cleanup interval
-    }, [navigation, fetchActiveChallengesCount]);
+        // REMOVED: Polling interval cleanup
+    }, [navigation]);
 
     const handleLogout = async () => {
         Alert.alert(
@@ -564,8 +490,9 @@ export default function AdminDashboard({ navigation }) {
                 <View style={styles.statsSection}>
                     <Text style={styles.sectionTitle}>Dashboard Overview</Text>
                     <View style={styles.statsGrid}>
-                        {/* --- ACTIVE CHALLENGES CARD (Navigable) --- */}
-                        <NavigableStatsCard
+                        
+                        {/* --- ACTIVE CHALLENGES CARD (STATIC & NAVIGABLE) --- */}
+                        <StatsCard
                             title="Active Challenges"
                             subtitle="Manage & Monitor"
                             icon="target"
@@ -575,12 +502,10 @@ export default function AdminDashboard({ navigation }) {
                                 icon: '#4CAF50' 
                             }}
                             delay={200}
-                            count={activeChallengesCount}
-                            isCountLoading={isCountLoading}
                             onPress={navigateToManageChallenges}
                         />
                         {/* --- USER ENGAGEMENT CARD (Standard) --- */}
-                        <StandardStatsCard
+                        <StatsCard
                             title="User Engagement"
                             subtitle="Track Progress"
                             icon="chart-bar"
@@ -912,7 +837,7 @@ const styles = StyleSheet.create({
         color: '#718096',
         textAlign: 'center',
     },
-    // --- New Dynamic Count Styles ---
+    // --- STATIC PLACEHOLDER ICON/TEXT STYLES ---
     dynamicCountContainer: {
         position: 'absolute',
         top: 15,
@@ -925,12 +850,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.7)',
         borderWidth: 2,
         borderColor: '#c6f6d5',
+        // The center icon is what remains when this is removed
     },
     dynamicCountText: {
         fontSize: 18,
         fontWeight: '900',
     },
-    // --- End New Dynamic Count Styles ---
+    // --- End STATIC PLACEHOLDER ---
 
     // Actions Section
     actionsSection: {

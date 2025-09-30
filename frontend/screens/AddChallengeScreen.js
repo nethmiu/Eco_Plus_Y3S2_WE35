@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +8,29 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
+
+
+// --- FIX: Move InputGroup outside the main component and use React.memo ---
+const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
+    <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>
+            <Ionicons name={icon} size={16} color="#4A90E2" /> {placeholder} *
+        </Text>
+        <TextInput
+            style={[styles.input, isMultiline && styles.inputMultiline]}
+            placeholder={placeholder}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            multiline={isMultiline}
+            numberOfLines={isMultiline ? 4 : 1}
+            textAlignVertical={isMultiline ? 'top' : 'center'}
+            placeholderTextColor="#9ca3af"
+        />
+    </View>
+));
+// --- END FIX ---
+
 
 export default function AddChallengeScreen({ navigation }) {
     const [title, setTitle] = useState('');
@@ -19,6 +42,13 @@ export default function AddChallengeScreen({ navigation }) {
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
     const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Use useCallback for setter functions passed to InputGroup to prevent re-rendering the InputGroup
+    const handleSetTitle = useCallback(value => setTitle(value), []);
+    const handleSetDescription = useCallback(value => setDescription(value), []);
+    const handleSetGoal = useCallback(value => setGoal(value), []);
+    const handleSetUnit = useCallback(value => setUnit(value), []);
+
 
     const handleAddChallenge = async () => {
         if (!title.trim() || !description.trim() || !goal || !unit.trim() || !startDate || !endDate) {
@@ -80,25 +110,6 @@ export default function AddChallengeScreen({ navigation }) {
         hideEndDatePicker();
     };
 
-    const InputGroup = ({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
-        <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-                <Ionicons name={icon} size={16} color="#4A90E2" /> {placeholder} *
-            </Text>
-            <TextInput
-                style={[styles.input, isMultiline && styles.inputMultiline]}
-                placeholder={placeholder}
-                value={value}
-                onChangeText={onChangeText}
-                keyboardType={keyboardType}
-                multiline={isMultiline}
-                numberOfLines={isMultiline ? 4 : 1}
-                textAlignVertical={isMultiline ? 'top' : 'center'}
-                placeholderTextColor="#9ca3af"
-            />
-        </View>
-    );
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -117,13 +128,13 @@ export default function AddChallengeScreen({ navigation }) {
                         icon="create-outline"
                         placeholder="Challenge Title"
                         value={title}
-                        onChangeText={setTitle}
+                        onChangeText={handleSetTitle} // Use memoized handler
                     />
                     <InputGroup
                         icon="document-text-outline"
                         placeholder="Description"
                         value={description}
-                        onChangeText={setDescription}
+                        onChangeText={handleSetDescription} // Use memoized handler
                         isMultiline={true}
                     />
                     
@@ -133,7 +144,7 @@ export default function AddChallengeScreen({ navigation }) {
                                 icon="stats-chart-outline"
                                 placeholder="Goal Value"
                                 value={goal}
-                                onChangeText={setGoal}
+                                onChangeText={handleSetGoal} // Use memoized handler
                                 keyboardType="numeric"
                             />
                         </View>
@@ -142,7 +153,7 @@ export default function AddChallengeScreen({ navigation }) {
                                 icon="cube-outline"
                                 placeholder="Unit (e.g., kWh)"
                                 value={unit}
-                                onChangeText={setUnit}
+                                onChangeText={handleSetUnit} // Use memoized handler
                             />
                         </View>
                     </View>

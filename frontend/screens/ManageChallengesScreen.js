@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
     View, 
     Text, 
@@ -12,7 +12,6 @@ import {
     ScrollView, 
     SafeAreaView, 
     StatusBar,
-    // FIX: Import KeyboardAvoidingView
     KeyboardAvoidingView,
     Platform 
 } from 'react-native';
@@ -24,6 +23,30 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
+
+
+// --- FIX: Move InputGroup outside the main component and use React.memo ---
+// This prevents the TextInput from losing focus due to re-renders.
+const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
+    <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>
+            <Ionicons name={icon} size={14} color="#6366f1" /> {placeholder}
+        </Text>
+        <TextInput
+            style={[styles.input, isMultiline && styles.inputMultiline]}
+            placeholder={placeholder}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            multiline={isMultiline}
+            numberOfLines={isMultiline ? 4 : 1}
+            textAlignVertical={isMultiline ? 'top' : 'center'}
+            placeholderTextColor="#9ca3af"
+        />
+    </View>
+));
+// --- END FIX ---
+
 
 export default function ManageChallengesScreen({ navigation }) {
     const [challenges, setChallenges] = useState([]);
@@ -147,24 +170,12 @@ export default function ManageChallengesScreen({ navigation }) {
         hideEndDatePicker();
     };
 
-    const InputGroup = ({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
-        <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-                <Ionicons name={icon} size={14} color="#6366f1" /> {placeholder}
-            </Text>
-            <TextInput
-                style={[styles.input, isMultiline && styles.inputMultiline]}
-                placeholder={placeholder}
-                value={value}
-                onChangeText={onChangeText}
-                keyboardType={keyboardType}
-                multiline={isMultiline}
-                numberOfLines={isMultiline ? 4 : 1}
-                textAlignVertical={isMultiline ? 'top' : 'center'}
-                placeholderTextColor="#9ca3af"
-            />
-        </View>
-    );
+    // Use useCallback for setter functions passed to InputGroup (Crucial for keyboard fix in modal)
+    const handleSetTitle = useCallback(value => setTitle(value), []);
+    const handleSetDescription = useCallback(value => setDescription(value), []);
+    const handleSetGoal = useCallback(value => setGoal(value), []);
+    const handleSetUnit = useCallback(value => setUnit(value), []);
+
 
     if (loading) {
         return <ActivityIndicator size="large" color="#6366f1" style={styles.loadingContainer} />;
@@ -241,11 +252,13 @@ export default function ManageChallengesScreen({ navigation }) {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.modalTitle}>Edit Challenge: {currentChallenge?.title}</Text>
                             
-                            <InputGroup icon="create-outline" placeholder="Title" value={title} onChangeText={setTitle} />
-                            <InputGroup icon="document-text-outline" placeholder="Description" value={description} onChangeText={setDescription} isMultiline={true} />
-                            <InputGroup icon="stats-chart-outline" placeholder="Goal Value" value={goal} onChangeText={setGoal} keyboardType="numeric" />
-                            <InputGroup icon="cube-outline" placeholder="Unit (e.g., kWh)" value={unit} onChangeText={setUnit} />
-                            
+                            {/* FIX: Using memoized InputGroup and handlers */}
+                            <InputGroup icon="create-outline" placeholder="Title" value={title} onChangeText={handleSetTitle} />
+                            <InputGroup icon="document-text-outline" placeholder="Description" value={description} onChangeText={handleSetDescription} isMultiline={true} />
+                            <InputGroup icon="stats-chart-outline" placeholder="Goal Value" value={goal} onChangeText={handleSetGoal} keyboardType="numeric" />
+                            <InputGroup icon="cube-outline" placeholder="Unit (e.g., kWh)" value={unit} onChangeText={handleSetUnit} />
+                            {/* END FIX */}
+
                             <View style={styles.datePickerContainer}>
                                 <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color="#6366f1" /> Start Date: {startDate.toLocaleDateString()}</Text>
                                 <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
@@ -303,6 +316,7 @@ export default function ManageChallengesScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    // NOTE: This backButton/headerTitle styling is overridden in the return block for the full list view.
     backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10, padding: 5 },
     headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#1a202c', marginBottom: 25, textAlign: 'center', marginTop: 70 },
     listContent: { paddingHorizontal: 16, paddingBottom: 20 },

@@ -222,12 +222,12 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 10,
     },
-    // --- Header Styles (Adjusted for better top spacing) ---
+    // --- Header and Back Button Fix ---
     header: {
         paddingHorizontal: 16,
-        // Increased paddingTop for more space from the absolute top of the screen
+        // Increased paddingTop for visual spacing and clearing the status bar area
         paddingTop: 50, 
-        paddingBottom: 15,
+        paddingBottom: 20, 
         backgroundColor: '#fff',
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
         left: 16,
         zIndex: 10,
         padding: 5,
-        backgroundColor: '#f0f4f8', 
+        backgroundColor: '#f0f4f8', // Added background for better tap visibility
         borderRadius: 10,
     },
     headerTitle: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#1a202c',
         textAlign: 'center',
-        paddingHorizontal: 40,
+        paddingHorizontal: 40, // Ensure text doesn't overlap the back button
     },
     // --- End Header Fix ---
     listContent: {
