@@ -4,18 +4,16 @@ const dataController = require('../controllers/dataController');
 
 const { protect } = require('../Middleware/authMiddleware'); 
 // Electricity routes
-router.post('/electricity', dataController.addElectricityData);
-router.get('/electricity', dataController.getElectricityHistory);
+
+router.post('/electricity', protect, dataController.addElectricityData); 
+router.get('/electricity', protect, dataController.getElectricityHistory); 
 
 // Water routes
-router.post('/water', dataController.addWaterData);
-router.get('/water', dataController.getWaterHistory);
+router.post('/water', protect, dataController.addWaterData); 
+router.get('/water', protect, dataController.getWaterHistory); 
 
 // Waste routes
-router.post('/waste', dataController.addWasteData);
-router.get('/waste', dataController.getWasteHistory);
-
-
-router.get('/dashboard', protect, dataController.getDashboardData);
+router.post('/waste', protect, dataController.addWasteData); 
+router.get('/waste', protect, dataController.getWasteHistory); 
 
 module.exports = router;
