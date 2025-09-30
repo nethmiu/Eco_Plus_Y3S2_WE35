@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { 
+    View, 
+    Text, 
+    TextInput, 
+    TouchableOpacity, 
+    StyleSheet, 
+    ScrollView, 
+    Alert, 
+    ActivityIndicator,
+    SafeAreaView,
+    StatusBar
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,6 +30,8 @@ export default function WaterDataScreen({ navigation }) {
         accountNo: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [step, setStep] = useState(4);
+    const [totalSteps] = useState(4);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -32,7 +46,7 @@ export default function WaterDataScreen({ navigation }) {
 
     const handleSubmit = async () => {
         if (!formData.units || !formData.billingMonth) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            Alert.alert('Validation Error', 'Please fill in all required fields');
             return;
         }
 
@@ -75,156 +89,313 @@ export default function WaterDataScreen({ navigation }) {
         });
     };
 
+    const handleNext = () => {
+        if (!formData.units) {
+            Alert.alert('Validation Error', 'Please fill in required fields before proceeding');
+            return;
+        }
+        navigation.navigate('WasteData');
+    };
+
     return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.title}>Add Water Usage 💧</Text>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
             
-            <View style={styles.formContainer}>
-                <Text style={styles.label}>Billing Month *</Text>
-                <TouchableOpacity 
-                    style={styles.dateButton}
-                    onPress={() => setShowDatePicker(true)}
-                >
-                    <Text style={styles.dateText}>{formatDate(formData.billingMonth)}</Text>
-                </TouchableOpacity>
-
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={formData.billingMonth}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
-                    />
-                )}
-
-                <Text style={styles.label}>Units Consumed (m³) *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 28"
-                    keyboardType="numeric"
-                    value={formData.units}
-                    onChangeText={(value) => handleInputChange('units', value)}
-                />
-
-                <Text style={styles.label}>Last Meter Reading (Optional)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 703"
-                    keyboardType="numeric"
-                    value={formData.lastReading}
-                    onChangeText={(value) => handleInputChange('lastReading', value)}
-                />
-
-                <Text style={styles.label}>Latest Meter Reading (Optional)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 731"
-                    keyboardType="numeric"
-                    value={formData.latestReading}
-                    onChangeText={(value) => handleInputChange('latestReading', value)}
-                />
-
-                <Text style={styles.label}>Account Number (Optional)</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 23/13/034/260/10"
-                    value={formData.accountNo}
-                    onChangeText={(value) => handleInputChange('accountNo', value)}
-                />
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.subtitle}>Setting Up Your Profile</Text>
+                <View style={{ marginTop: 15, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, color: '#4A90E2', fontWeight: '600' }}>
+                        Step {step} of {totalSteps}
+                    </Text>
+                    <View style={{ 
+                        flexDirection: 'row', 
+                        marginTop: 10,
+                        width: 200,
+                        height: 6,
+                        backgroundColor: '#E9ECEF',
+                        borderRadius: 3
+                    }}>
+                        <View style={{ 
+                            width: `${(step / totalSteps) * 100}%`, 
+                            height: '100%', 
+                            backgroundColor: '#4A90E2',
+                            borderRadius: 3
+                        }} />
+                    </View>
+                </View>
             </View>
 
-            <TouchableOpacity 
-                style={[styles.submitButton, loading && styles.disabledButton]}
-                onPress={handleSubmit}
-                disabled={loading}
+            <ScrollView 
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
             >
-                {loading ? (
-                    <ActivityIndicator color="white" />
-                ) : (
-                    <Text style={styles.submitButtonText}>Save Water Data</Text>
-                )}
-            </TouchableOpacity>
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Ionicons name="water-outline" size={24} color="#4A90E2" />
+                        <Text style={styles.sectionTitle}>Water Usage</Text>
+                    </View>
 
-            <TouchableOpacity 
-                style={styles.historyButton}
-                onPress={() => navigation.navigate('WasteData')}
-            >
-                <Text style={styles.historyButtonText}>Next</Text>
-            </TouchableOpacity>
-        </ScrollView>
+                    {/* Billing Month */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Billing Month *</Text>
+                        <TouchableOpacity 
+                            style={styles.pickerContainer}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Text style={[styles.input, { color: formData.billingMonth ? '#2C3E50' : '#666' }]}>
+                                {formatDate(formData.billingMonth)}
+                            </Text>
+                            <Ionicons name="calendar-outline" size={20} color="#666" style={styles.pickerIcon} />
+                        </TouchableOpacity>
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={formData.billingMonth}
+                                mode="date"
+                                display="default"
+                                onChange={handleDateChange}
+                            />
+                        )}
+                    </View>
+
+                    {/* Units Consumed */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Units Consumed (m³) *</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 28"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.units}
+                                onChangeText={(value) => handleInputChange('units', value)}
+                            />
+                            <Text style={styles.unitText}>m³</Text>
+                        </View>
+                    </View>
+
+                    {/* Last Reading */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Last Meter Reading (Optional)</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 703"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.lastReading}
+                                onChangeText={(value) => handleInputChange('lastReading', value)}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Latest Reading */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Latest Meter Reading (Optional)</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 731"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.latestReading}
+                                onChangeText={(value) => handleInputChange('latestReading', value)}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Account Number */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Account Number (Optional)</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 23/13/034/260/10"
+                                placeholderTextColor="#999"
+                                value={formData.accountNo}
+                                onChangeText={(value) => handleInputChange('accountNo', value)}
+                            />
+                        </View>
+                    </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={{ paddingHorizontal: 20, marginTop: 10, gap: 10 }}>
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            styles.primaryButton,
+                            { backgroundColor: '#4A90E2' },
+                            (loading || !formData.units) && styles.buttonDisabled
+                        ]}
+                        onPress={handleSubmit}
+                        disabled={loading || !formData.units}
+                    >
+                        <View style={styles.buttonContent}>
+                            {loading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                            )}
+                            <Text style={styles.buttonText}>
+                                {loading ? 'Saving...' : 'Save Data'}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            { backgroundColor: '#28A745' },
+                            (!formData.units) && styles.buttonDisabled
+                        ]}
+                        onPress={handleNext}
+                        disabled={!formData.units || loading}
+                    >
+                        <View style={styles.buttonContent}>
+                            <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
+                            <Text style={styles.buttonText}>Next</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            styles.secondaryButton,
+                            { backgroundColor: '#6C757D' }
+                        ]}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <View style={styles.buttonContent}>
+                            <Ionicons name="arrow-back-outline" size={20} color="#fff" />
+                            <Text style={styles.buttonText}>Back</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
-        padding: 20,
-
+        backgroundColor: '#f8f9fa',
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+    contentContainer: {
+        paddingBottom: 30,
+    },
+    header: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        paddingHorizontal: 20,
+        backgroundColor: '#fff',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
         marginBottom: 20,
-        color: '#2c5530',
-        textAlign: 'center'
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    formContainer: {
-        backgroundColor: 'white',
+    subtitle: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+    },
+    card: {
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 20,
         padding: 20,
-        borderRadius: 10,
-        marginBottom: 20
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E9ECEF',
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#2C3E50',
+        marginLeft: 10,
+    },
+    inputGroup: {
+        marginBottom: 20,
     },
     label: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '500',
+        color: '#495057',
         marginBottom: 8,
-        color: '#333'
+    },
+    pickerContainer: {
+        borderColor: '#E9ECEF',
+        borderWidth: 2,
+        borderRadius: 12,
+        backgroundColor: '#F8F9FA',
+        position: 'relative',
+        overflow: 'hidden',
     },
     input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 15,
-        fontSize: 16
-    },
-    dateButton: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 15
-    },
-    dateText: {
+        height: 50,
+        paddingHorizontal: 15,
         fontSize: 16,
-        color: '#333'
+        backgroundColor: '#F8F9FA',
+        color: '#2C3E50',
     },
-    submitButton: {
-        backgroundColor: '#4caf50',
-        padding: 15,
-        borderRadius: 8,
+    pickerIcon: {
+        position: 'absolute',
+        right: 15,
+        top: 15,
+        zIndex: 1,
+    },
+    unitText: {
+        position: 'absolute',
+        right: 15,
+        top: 15,
+        color: '#666',
+        fontSize: 16,
+    },
+    button: {
+        height: 50,
+        borderRadius: 12,
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    disabledButton: {
-        backgroundColor: '#a5d6a7'
+    buttonDisabled: {
+        opacity: 0.6,
     },
-    submitButtonText: {
-        color: 'white',
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
         fontSize: 16,
-        fontWeight: 'bold'
+        fontWeight: '600',
+        marginLeft: 8,
     },
-    historyButton: {
-        backgroundColor: '#2196f3',
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center'
+    primaryButton: {
+        marginTop: 10,
     },
-    historyButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold'
-    }
+    secondaryButton: {
+        marginTop: 10,
+    },
 });

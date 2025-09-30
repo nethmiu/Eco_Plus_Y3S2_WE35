@@ -12,6 +12,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import ElectricityDataScreen from './screens/ElectricityDataScreen';
 import WaterDataScreen from './screens/WaterDataScreen';
 import WasteDataScreen from './screens/WasteDataScreen';
+import SustainabilityProfileScreen from './screens/SustainabilityProfile';
 
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
@@ -54,6 +55,7 @@ export default function App() {
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />
         <Stack.Screen name="WaterData" component={WaterDataScreen} />
         <Stack.Screen name="WasteData" component={WasteDataScreen} />
+        <Stack.Screen name="SustainabilityProfile" component={SustainabilityProfileScreen} />
 
       <Stack.Screen 
         name="MapScreen" 

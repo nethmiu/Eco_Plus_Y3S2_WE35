@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { 
+    View, 
+    Text, 
+    TextInput, 
+    TouchableOpacity, 
+    StyleSheet, 
+    ScrollView, 
+    Alert, 
+    ActivityIndicator,
+    SafeAreaView,
+    StatusBar
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import config from '../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
@@ -16,6 +29,8 @@ export default function WasteDataScreen({ navigation }) {
         foodWasteBags: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [step, setStep] = useState(4);
+    const [totalSteps] = useState(4);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -30,7 +45,7 @@ export default function WasteDataScreen({ navigation }) {
 
     const handleSubmit = async () => {
         if (!formData.plasticBags || !formData.paperBags || !formData.foodWasteBags) {
-            Alert.alert('Error', 'Please fill in all waste fields');
+            Alert.alert('Validation Error', 'Please fill in all waste fields');
             return;
         }
 
@@ -73,142 +88,302 @@ export default function WasteDataScreen({ navigation }) {
         });
     };
 
+    const handleComplete = () => {
+        if (!formData.plasticBags || !formData.paperBags || !formData.foodWasteBags) {
+            Alert.alert('Validation Error', 'Please fill in all fields before completing');
+            return;
+        }
+        // Navigate to dashboard or completion screen
+        navigation.navigate('Home');
+    };
+
     return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.title}>Add Waste Data ♻️</Text>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
             
-            <View style={styles.formContainer}>
-                <Text style={styles.label}>Collection Date *</Text>
-                <TouchableOpacity 
-                    style={styles.dateButton}
-                    onPress={() => setShowDatePicker(true)}
-                >
-                    <Text style={styles.dateText}>{formatDate(formData.collectionDate)}</Text>
-                </TouchableOpacity>
-
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={formData.collectionDate}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
-                    />
-                )}
-
-                <Text style={styles.label}>Plastic Bags *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 2"
-                    keyboardType="numeric"
-                    value={formData.plasticBags}
-                    onChangeText={(value) => handleInputChange('plasticBags', value)}
-                />
-
-                <Text style={styles.label}>Paper Bags *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 1"
-                    keyboardType="numeric"
-                    value={formData.paperBags}
-                    onChangeText={(value) => handleInputChange('paperBags', value)}
-                />
-
-                <Text style={styles.label}>Food Waste Bags *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 3"
-                    keyboardType="numeric"
-                    value={formData.foodWasteBags}
-                    onChangeText={(value) => handleInputChange('foodWasteBags', value)}
-                />
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.subtitle}>Setting Up Your Profile</Text>
+                <View style={{ marginTop: 15, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16, color: '#4A90E2', fontWeight: '600' }}>
+                        Step {step} of {totalSteps}
+                    </Text>
+                    <View style={{ 
+                        flexDirection: 'row', 
+                        marginTop: 10,
+                        width: 200,
+                        height: 6,
+                        backgroundColor: '#E9ECEF',
+                        borderRadius: 3
+                    }}>
+                        <View style={{ 
+                            width: `${(step / totalSteps) * 100}%`, 
+                            height: '100%', 
+                            backgroundColor: '#4A90E2',
+                            borderRadius: 3
+                        }} />
+                    </View>
+                </View>
             </View>
 
-            <TouchableOpacity 
-                style={[styles.submitButton, loading && styles.disabledButton]}
-                onPress={handleSubmit}
-                disabled={loading}
+            <ScrollView 
+                style={styles.container}
+                contentContainerStyle={styles.contentContainer}
+                showsVerticalScrollIndicator={false}
             >
-                {loading ? (
-                    <ActivityIndicator color="white" />
-                ) : (
-                    <Text style={styles.submitButtonText}>Save Waste Data</Text>
-                )}
-            </TouchableOpacity>
+                <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <Ionicons name="trash-outline" size={24} color="#4A90E2" />
+                        <Text style={styles.sectionTitle}>Waste Data</Text>
+                    </View>
 
-            
-        </ScrollView>
+                {/* Collection Date */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Collection Date *</Text>
+                        <TouchableOpacity 
+                            style={styles.pickerContainer}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Text style={[styles.input, { color: formData.collectionDate ? '#2C3E50' : '#666' }]}>
+                                {formatDate(formData.collectionDate)}
+                            </Text>
+                            <Ionicons name="calendar-outline" size={20} color="#666" style={styles.pickerIcon} />
+                        </TouchableOpacity>
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={formData.collectionDate}
+                                mode="date"
+                                display="default"
+                                onChange={handleDateChange}
+                            />
+                        )}
+                    </View>
+
+                    {/* Plastic Bags */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Plastic Bags *</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 2"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.plasticBags}
+                                onChangeText={(value) => handleInputChange('plasticBags', value)}
+                            />
+                            <Text style={styles.unitText}>bags</Text>
+                        </View>
+                    </View>
+
+                    {/* Paper Bags */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Paper Bags *</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 1"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.paperBags}
+                                onChangeText={(value) => handleInputChange('paperBags', value)}
+                            />
+                            <Text style={styles.unitText}>bags</Text>
+                        </View>
+                    </View>
+
+                    {/* Food Waste Bags */}
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Food Waste Bags *</Text>
+                        <View style={styles.pickerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g., 3"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                value={formData.foodWasteBags}
+                                onChangeText={(value) => handleInputChange('foodWasteBags', value)}
+                            />
+                            <Text style={styles.unitText}>bags</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={{ paddingHorizontal: 20, marginTop: 10, gap: 10 }}>
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            styles.primaryButton,
+                            { backgroundColor: '#4A90E2' },
+                            (loading || !formData.plasticBags || !formData.paperBags || !formData.foodWasteBags) && styles.buttonDisabled
+                        ]}
+                        onPress={handleSubmit}
+                        disabled={loading || !formData.plasticBags || !formData.paperBags || !formData.foodWasteBags}
+                    >
+                        <View style={styles.buttonContent}>
+                            {loading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                            )}
+                            <Text style={styles.buttonText}>
+                                {loading ? 'Saving...' : 'Save Data'}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            { backgroundColor: '#28A745' },
+                            (!formData.plasticBags || !formData.paperBags || !formData.foodWasteBags) && styles.buttonDisabled
+                        ]}
+                        onPress={handleComplete}
+                        disabled={!formData.plasticBags || !formData.paperBags || !formData.foodWasteBags || loading}
+                    >
+                        <View style={styles.buttonContent}>
+                            <Ionicons name="checkmark-done-outline" size={20} color="#fff" />
+                            <Text style={styles.buttonText}>Complete Setup</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.button,
+                            styles.secondaryButton,
+                            { backgroundColor: '#6C757D' }
+                        ]}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <View style={styles.buttonContent}>
+                            <Ionicons name="arrow-back-outline" size={20} color="#fff" />
+                            <Text style={styles.buttonText}>Back</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
-        padding: 20
+        backgroundColor: '#f8f9fa',
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+    contentContainer: {
+        paddingBottom: 30,
+    },
+    header: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        paddingHorizontal: 20,
+        backgroundColor: '#fff',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
         marginBottom: 20,
-        color: '#2c5530',
-        textAlign: 'center'
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    formContainer: {
-        backgroundColor: 'white',
+    subtitle: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+    },
+    card: {
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        borderRadius: 20,
         padding: 20,
-        borderRadius: 10,
-        marginBottom: 20
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E9ECEF',
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#2C3E50',
+        marginLeft: 10,
+    },
+    inputGroup: {
+        marginBottom: 20,
     },
     label: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '500',
+        color: '#495057',
         marginBottom: 8,
-        color: '#333'
+    },
+    pickerContainer: {
+        borderColor: '#E9ECEF',
+        borderWidth: 2,
+        borderRadius: 12,
+        backgroundColor: '#F8F9FA',
+        position: 'relative',
+        overflow: 'hidden',
     },
     input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 15,
-        fontSize: 16
-    },
-    dateButton: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 15
-    },
-    dateText: {
+        height: 50,
+        paddingHorizontal: 15,
         fontSize: 16,
-        color: '#333'
+        backgroundColor: '#F8F9FA',
+        color: '#2C3E50',
     },
-    submitButton: {
-        backgroundColor: '#4caf50',
-        padding: 15,
-        borderRadius: 8,
+    pickerIcon: {
+        position: 'absolute',
+        right: 15,
+        top: 15,
+        zIndex: 1,
+    },
+    unitText: {
+        position: 'absolute',
+        right: 15,
+        top: 15,
+        color: '#666',
+        fontSize: 16,
+    },
+    button: {
+        height: 50,
+        borderRadius: 12,
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    disabledButton: {
-        backgroundColor: '#a5d6a7'
+    buttonDisabled: {
+        opacity: 0.6,
     },
-    submitButtonText: {
-        color: 'white',
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
         fontSize: 16,
-        fontWeight: 'bold'
+        fontWeight: '600',
+        marginLeft: 8,
     },
-    historyButton: {
-        backgroundColor: '#2196f3',
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center'
+    primaryButton: {
+        marginTop: 10,
     },
-    historyButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold'
-    }
+    secondaryButton: {
+        marginTop: 10,
+    },
 });

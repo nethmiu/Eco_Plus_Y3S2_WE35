@@ -19,4 +19,8 @@ router.get('/water', dataController.getWaterHistory);
 router.post('/waste', dataController.addWasteData);
 router.get('/waste', dataController.getWasteHistory);
 
+//Sustainability Profile routes
+router.post('/set-profile', dataController.setSustainabilityProfile);
+router.get('/get-profile', dataController.getSustainabilityProfile);
+
 module.exports = router;

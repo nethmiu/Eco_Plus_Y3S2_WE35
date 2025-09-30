@@ -278,7 +278,7 @@ export default function HomeScreen({ navigation }) {
     }, [navigation]);
 
     const handleGetStarted = useCallback(() => {
-        navigation.navigate('ElectricityData');
+        navigation.navigate('SustainabilityProfile');
     }, [navigation]);
 
     const navigateToProfile = useCallback(() => {
