@@ -26,6 +26,7 @@ const getLatestConsumption = async (userId, unit) => {
             // Assuming waste tracking is based on total bags for simplicity
             const wasteData = await WasteUsage.findOne({ userId }).sort({ collectionDate: -1 });
             if (wasteData) {
+                // Assuming wasteUsageModel tracks bags/kg
                 return wasteData.plasticBags + wasteData.paperBags + wasteData.foodWasteBags;
             }
             return 0;
@@ -206,28 +207,10 @@ exports.getLeaderboard = async (req, res) => {
 // ====================================================================
 
 /**
- * Gets the total count of currently active challenges for the Dashboard.
+ * [REMOVED] The logic for getting the active challenge count has been removed.
+ * exports.getActiveChallengesCount is no longer present.
  */
-exports.getActiveChallengesCount = async (req, res) => {
-    try {
-        const currentDate = new Date();
-        
-        const activeCount = await Challenge.countDocuments({
-            startDate: { $lte: currentDate }, 
-            endDate: { $gte: currentDate },   
-        });
 
-        res.status(200).json({
-            status: 'success',
-            data: { activeCount },
-        });
-    } catch (err) {
-        res.status(500).json({ 
-            status: 'error', 
-            message: 'Error fetching active challenge count.' 
-        });
-    }
-};
 
 /**
  * FOR TESTING/ADMIN DEMO: Function to manually complete a challenge and assign points.

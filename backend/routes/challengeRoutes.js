@@ -29,7 +29,7 @@ router
 router.get('/', challengeController.getAllChallenges);
 
 // =======================================================
-// 3. GAMIFICATION & STATS ENDPOINTS (Task 02)
+// 3. GAMIFICATION & PARTICIPATION ENDPOINTS (Task 02)
 // =======================================================
 
 // User joins a specific challenge (Used by ChallengeListScreen.js)
@@ -40,9 +40,7 @@ router.post('/:challengeId/join', authMiddleware.protect, challengeController.jo
 // GET /api/challenges/leaderboard
 router.get('/leaderboard', authMiddleware.protect, challengeController.getLeaderboard);
 
-// Get Active Challenge Count (Used by AdminDashboard.js)
-// GET /api/challenges/stats/active/count
-router.get('/stats/active/count', authMiddleware.protect, challengeController.getActiveChallengesCount);
+// [REMOVED] The '/stats/active/count' endpoint is deleted here.
 
 // Admin/Demo evaluation endpoint (for assigning points manually)
 // PATCH /api/challenges/evaluate
