@@ -257,7 +257,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleLogout = useCallback(async () => {
         Alert.alert(
-            'Confirm Logout',
+            'Confirm Sign out',
             'Are you sure you want to sign out?',
             [
                 {
@@ -376,7 +376,7 @@ export default function HomeScreen({ navigation }) {
                     />
                     
                     <ActionButton
-                        title="Logout"
+                        title="Sing out"
                         onPress={handleLogout}
                         icon="logout"
                         iconLibrary="MaterialCommunityIcons"

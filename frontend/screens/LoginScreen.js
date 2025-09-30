@@ -116,16 +116,13 @@ export default function LoginScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-            {/* Header Section */}
             <View style={styles.header}>
                 <Ionicons name="leaf" size={60} color="#4CAF50" style={styles.logo} />
                 <Text style={styles.title}>Welcome Back!</Text>
                 <Text style={styles.subtitle}>Sign in to continue your eco-journey</Text>
             </View>
 
-            {/* Form Section */}
             <View style={styles.formContainer}>
-                {/* Email Input */}
                 <View style={styles.inputContainer}>
                     <MaterialIcons name="email" size={22} color="#666" style={styles.inputIcon} />
                     <TextInput
@@ -139,7 +136,6 @@ export default function LoginScreen({ navigation }) {
                     />
                 </View>
 
-                {/* Password Input */}
                 <View style={styles.inputContainer}>
                     <MaterialIcons name="lock-outline" size={22} color="#666" style={styles.inputIcon} />
                     <TextInput
@@ -162,7 +158,10 @@ export default function LoginScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Login Button */}
+                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                    <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity 
                     style={[styles.loginButton, isLoading && styles.buttonDisabled]} 
                     onPress={handleLogin}
@@ -178,7 +177,6 @@ export default function LoginScreen({ navigation }) {
                     )}
                 </TouchableOpacity>
 
-                {/* Biometric Login */}
                 {canUseBiometrics && (
                     <TouchableOpacity 
                         style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]} 
@@ -196,14 +194,12 @@ export default function LoginScreen({ navigation }) {
                     </TouchableOpacity>
                 )}
 
-                {/* Divider */}
                 <View style={styles.divider}>
                     <View style={styles.dividerLine} />
                     <Text style={styles.dividerText}>or</Text>
                     <View style={styles.dividerLine} />
                 </View>
 
-                {/* Register Redirect */}
                 <TouchableOpacity 
                     onPress={() => navigation.navigate('Register')}
                     style={styles.registerContainer}
@@ -278,6 +274,12 @@ const styles = StyleSheet.create({
     },
     eyeIcon: {
         padding: 5,
+    },
+    forgotPassword: {
+        textAlign: 'center',
+        color: '#007bff',
+        fontWeight: '600',
+        marginBottom: 20,
     },
     loginButton: {
         flexDirection: 'row',

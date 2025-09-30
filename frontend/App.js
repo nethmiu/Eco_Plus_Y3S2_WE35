@@ -8,6 +8,8 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen'; 
 import ProfileScreen from './screens/ProfileScreen';
+import EditAdminProfile from './screens/EditAdminProfile';
+import EditEnvProfile from './screens/EditEnvProfile';
 
 import ElectricityDataScreen from './screens/ElectricityDataScreen';
 import WaterDataScreen from './screens/WaterDataScreen';
@@ -24,6 +26,9 @@ import ManageUsersScreen from './screens/ManageUsersScreen';
 import EnvironmentalistDashboard from './screens/EnvironmentalistDashboard';
 import MapScreen from './screens/MapScreen';
 
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
+
 
 // 🔹 Import DashboardScreen
 import DashboardScreen from './screens/DashboardScreen';
@@ -39,6 +44,8 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'Forgot Password' }} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: 'Reset Password' }} />
         
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
@@ -50,6 +57,8 @@ export default function App() {
             options={{ title: 'Create New User' }} 
         />
         <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
+        <Stack.Screen name="EditAdminProfile" component={EditAdminProfile} />
+        <Stack.Screen name="EditEnvProfile" component={EditEnvProfile} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
 
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />

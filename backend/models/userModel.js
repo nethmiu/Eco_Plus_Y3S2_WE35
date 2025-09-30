@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide your city'],
     },
+    passwordResetOTP: String,
+    passwordResetExpires: Date,
     photo: {
         type: String,
         default: 'default.jpg',
@@ -49,6 +51,39 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    expertise: {
+    type: String,
+    enum: [
+        'Wildlife Conservation',
+        'Marine Biology', 
+        'Forest Management',
+        'Climate Change',
+        'Renewable Energy',
+        'Waste Management',
+        'Water Conservation',
+        'Air Quality Monitoring',
+        'Ecosystem Restoration',
+        'Environmental Policy',
+        'Sustainable Agriculture',
+        'Biodiversity Research',
+        'Environmental Education',
+        'Carbon Footprint Analysis',
+        'Green Technology'
+    ]
+},
+bio: {
+    type: String,
+    maxlength: 500,
+},
+yearsOfExperience: {
+    type: Number,
+    min: 0,
+    max: 50,
+},
+organization: {
+    type: String,
+    maxlength: 100,
+}
 });
 
 // Hash password before saving

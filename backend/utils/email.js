@@ -84,3 +84,24 @@ exports.sendAccountCreationEmail = async (userEmail, userName, temporaryPassword
         html
     });
 };
+
+exports.sendPasswordResetEmail = async (userEmail, otp) => {
+    const subject = 'Your Password Reset Code (Valid for 10 minutes)';
+    const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2 style="color: #FF9800;">Password Reset Request</h2>
+            <p>You requested a password reset. Use the following One-Time Password (OTP) to reset your password:</p>
+            <p style="font-size: 24px; font-weight: bold; color: #333; letter-spacing: 2px; margin: 20px 0; text-align: center;">${otp}</p>
+            <p>This code is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+            <br>
+            <p>Best regards,</p>
+            <p><strong>The Eco Pulse Team</strong></p>
+        </div>
+    `;
+
+    await sendEmail({
+        email: userEmail,
+        subject,
+        html
+    });
+};
