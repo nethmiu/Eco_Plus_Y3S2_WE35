@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -18,6 +17,9 @@ import WasteDataScreen from './screens/WasteDataScreen';
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
 import ManageChallengesScreen from './screens/ManageChallengesScreen';
+// --- NEW IMPORT ---
+import LeaderboardScreen from './screens/LeaderboardScreen';
+// ------------------
 
 import AdminDashboard from './screens/AdminDashboard';
 import AdminRegistrationScreen from './screens/AdminRegistrationScreen';
@@ -49,6 +51,9 @@ export default function App() {
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
+        
+        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
         <Stack.Screen 
             name="AdminRegistration" 
@@ -72,7 +77,6 @@ export default function App() {
       </Stack.Navigator>
     </NavigationContainer>
     
-    // 👉 Now direct DashboardScreen render 
     //<DashboardScreen />
   );
 }
