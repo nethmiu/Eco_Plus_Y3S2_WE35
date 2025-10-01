@@ -5,7 +5,8 @@ import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, ActivityI
 import axios from 'axios';
 import { LineChart } from 'react-native-chart-kit';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Get token from storage
+import * as SecureStore from 'expo-secure-store'; 
+import config from '../config';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,47 +20,48 @@ const DashboardScreen = () => {
     //  DATA FETCHING LOGIC (useEffect Hook)
     // =================================================================
     const fetchDashboardData = async () => {
-        try {
-            // Step 1: Retrieve stored user token
-            const token = await AsyncStorage.getItem('userToken'); 
+    try {
+        // ✅ Step 1: Retrieve stored user token
+        const token = await SecureStore.getItemAsync('userToken'); 
 
-            if (!token) {
-                // If token is missing, show error (or redirect to login screen)
-                setError("Authentication Token not found. Please login again.");
-                setLoading(false);
-                return;
-            }
-
-            // Step 2: Prepare headers for API request
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            };
-            
-            // Step 3: Make API request to backend endpoint
-            const { data } = await axios.get('http://192.168.1.5:5000/api/data/dashboard', config); // <-- IMPORTANT: Replace with your IP address
-            
-            // If chart data is missing, use fallback data
-            if (!data.chartData || !data.chartData.labels || data.chartData.labels.length === 0) {
-                data.chartData = {
-                    labels: ['Start'],
-                    datasets: [{ data: [0] }],
-                    legend: ["No electricity data yet"]
-                };
-            }
-
-            setDashboardData(data);
-            setError(null); 
-
-        } catch (err) {
-            console.error("Error while fetching dashboard data:", err.response ? err.response.data : err.message);
-            setError("Could not load your dashboard data. Please try again.");
-        } finally {
+        if (!token) {
+            setError("Authentication Token not found. Please login again.");
             setLoading(false);
-            setRefreshing(false); 
+            return;
         }
-    };
+
+        // ✅ Step 2: Prepare headers for API request
+        const axiosConfig = {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        };
+
+        // ✅ Step 3: Make API request to backend endpoint
+        const response = await axios.get(`http://${config.IP}:${config.PORT}/api/data/dashboard`, axiosConfig);
+
+        const dashboardData = response.data;
+
+        // ✅ Step 4: Fallback chart data if missing
+        if (!dashboardData.chartData || !dashboardData.chartData.labels?.length) {
+            dashboardData.chartData = {
+                labels: ['Start'],
+                datasets: [{ data: [0] }],
+                legend: ["No electricity data yet"]
+            };
+        }
+
+        setDashboardData(dashboardData);
+        setError(null);
+
+    } catch (err) {
+        console.error("Error while fetching dashboard data:", err.response?.data || err.message);
+        setError("Could not load your dashboard data. Please try again.");
+    } finally {
+        setLoading(false);
+        setRefreshing(false); 
+    }
+};
 
     useEffect(() => {
         fetchDashboardData();

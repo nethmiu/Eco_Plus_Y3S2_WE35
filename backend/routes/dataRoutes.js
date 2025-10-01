@@ -16,4 +16,6 @@ router.get('/water', protect, dataController.getWaterHistory);
 router.post('/waste', protect, dataController.addWasteData); 
 router.get('/waste', protect, dataController.getWasteHistory); 
 
+router.get('/dashboard', protect, dataController.getDashboardData);
+
 module.exports = router;
