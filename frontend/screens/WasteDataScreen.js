@@ -29,8 +29,8 @@ export default function WasteDataScreen({ navigation }) {
         foodWasteBags: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [step, setStep] = useState(4);
-    const [totalSteps] = useState(4);
+    const [step, setStep] = useState(3);
+    const [totalSteps] = useState(3);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));

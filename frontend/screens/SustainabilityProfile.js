@@ -24,8 +24,6 @@ const TOKEN_KEY = 'userToken';
 const SustainabilityProfileScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [step, setStep] = useState(2);
-    const [totalSteps] = useState(4);
 
     // Form data
     const [formData, setFormData] = useState({
@@ -137,47 +135,6 @@ const SustainabilityProfileScreen = ({ navigation }) => {
         }
     };
 
-    const handleNext = async () => {
-        if (!formData.primaryWaterSources.length || formData.separateWaste === null) {
-            Alert.alert('Validation Error', 'Please fill in all required fields before proceeding');
-            return;
-        }
-
-        setSaving(true);
-        try {
-            const token = await SecureStore.getItemAsync(TOKEN_KEY);
-            if (!token) {
-                Alert.alert('Error', 'Authentication required');
-                return;
-            }
-
-            const payload = {
-                primaryWaterSources: formData.primaryWaterSources,
-                separateWaste: formData.separateWaste,
-                compostWaste: formData.compostWaste,
-                plasticBagSize: parseInt(formData.plasticBagSize) || 5,
-                foodWasteBagSize: parseInt(formData.foodWasteBagSize) || 5,
-                paperBagSize: parseInt(formData.paperBagSize) || 5
-            };
-
-            // Save profile before navigating
-            await axios.post(`${API_URL}/data/set-profile`, payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // Navigate to next screen
-            navigation.navigate('ElectricityData');
-        } catch (error) {
-            console.error('API Error:', error.response?.data || error.message);
-            Alert.alert(
-                'Error', 
-                error.response?.data?.message || 'Failed to save profile'
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -191,29 +148,10 @@ const SustainabilityProfileScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
             
-            {/* Header */}
+            {/* Header - Simplified without progress bar */}
             <View style={styles.header}>
-                <Text style={styles.subtitle}>Setting Up Your Profile</Text>
-                <View style={{ marginTop: 15, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 16, color: '#4A90E2', fontWeight: '600' }}>
-                        Step {step} of {totalSteps}
-                    </Text>
-                    <View style={{ 
-                        flexDirection: 'row', 
-                        marginTop: 10,
-                        width: 200,
-                        height: 6,
-                        backgroundColor: '#E9ECEF',
-                        borderRadius: 3
-                    }}>
-                        <View style={{ 
-                            width: `${(step / totalSteps) * 100}%`, 
-                            height: '100%', 
-                            backgroundColor: '#4A90E2',
-                            borderRadius: 3
-                        }} />
-                    </View>
-                </View>
+                <Text style={styles.title}>Sustainability Profile</Text>
+                <Text style={styles.subtitle}>Set up your environmental preferences</Text>
             </View>
 
             <ScrollView 
@@ -525,24 +463,6 @@ const SustainabilityProfileScreen = ({ navigation }) => {
                     <TouchableOpacity
                         style={[
                             styles.button,
-                            { backgroundColor: '#28A745' },
-                            (!formData.primaryWaterSources.length || formData.separateWaste === null) && 
-                            styles.buttonDisabled
-                        ]}
-                        onPress={handleNext}
-                        disabled={!formData.primaryWaterSources.length || formData.separateWaste === null || saving}
-                    >
-                        <View style={styles.buttonContent}>
-                            <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
-                            <Text style={styles.buttonText}>
-                                {saving ? 'Saving...' : 'Next'}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.button,
                             styles.secondaryButton,
                             { backgroundColor: '#6C757D' }
                         ]}
@@ -558,7 +478,6 @@ const SustainabilityProfileScreen = ({ navigation }) => {
         </SafeAreaView>
     );
 };
-
 
 const styles = StyleSheet.create({
     container: {
@@ -592,46 +511,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 5,
-    },
-    profileImageContainer: {
-        position: 'relative',
-        marginBottom: 8,
-    },
-    profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 4,
-        borderColor: '#4A90E2',
-    },
-    profileIcon: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#E8F4FD',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 4,
-        borderColor: '#4A90E2',
-    },
-    cameraIconContainer: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 35,
-        height: 35,
-        borderRadius: 17.5,
-        backgroundColor: '#4A90E2',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 3,
-        borderColor: '#fff',
-    },
-    profileImageText: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 15,
-        fontStyle: 'italic',
     },
     title: {
         fontSize: 28,
@@ -750,36 +629,6 @@ const styles = StyleSheet.create({
     },
     secondaryButton: {
         marginTop: 10,
-    },
-    dangerZone: {
-        marginHorizontal: 20,
-        marginTop: 10,
-        paddingTop: 20,
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-        borderTopWidth: 2,
-        borderTopColor: '#FFE6E6',
-        backgroundColor: '#FFF5F5',
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: '#FFD6D6',
-    },
-    dangerZoneHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    dangerZoneTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#D9534F',
-        marginLeft: 8,
-    },
-    dangerZoneDescription: {
-        fontSize: 14,
-        color: '#721C24',
-        marginBottom: 15,
-        lineHeight: 20,
     },
 });
 

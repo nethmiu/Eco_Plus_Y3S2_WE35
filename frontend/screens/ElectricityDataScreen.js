@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect import
 import { 
     View, 
     Text, 
@@ -21,7 +21,7 @@ import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
-export default function ElectricityDataScreen({ navigation }) {
+export default function ElectricityDataScreen({ navigation, route }) { // Added route prop
     const [loading, setLoading] = useState(false);
     const [ocrLoading, setOcrLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -32,8 +32,8 @@ export default function ElectricityDataScreen({ navigation }) {
         accountNo: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [step, setStep] = useState(3);
-    const [totalSteps] = useState(4);
+    const [step, setStep] = useState(1);
+    const [totalSteps] = useState(3);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -46,37 +46,26 @@ export default function ElectricityDataScreen({ navigation }) {
         }
     };
 
-    const handleOcrScan = async () => {
-        setOcrLoading(true);
-        try {
-            // Simulate OCR processing
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Mock OCR data - replace this with actual OCR implementation
-            const mockOcrData = {
-                units: '169',
-                lastReading: '14772',
-                latestReading: '14941',
-                accountNo: '2004401400'
-            };
-            
-            // Auto-fill form with OCR data
+    const handleOcrScan = () => {
+        navigation.navigate('CameraScreen', { formType: 'electricity' });
+    };
+
+    // Handle OCR data when returning from camera
+    useEffect(() => {
+        if (route.params?.ocrData) {
+            const { ocrData } = route.params;
             setFormData(prev => ({
                 ...prev,
-                units: mockOcrData.units,
-                lastReading: mockOcrData.lastReading,
-                latestReading: mockOcrData.latestReading,
-                accountNo: mockOcrData.accountNo
+                units: ocrData.units || '',
+                lastReading: ocrData.lastReading || '',
+                latestReading: ocrData.latestReading || '',
+                accountNo: ocrData.accountNo || ''
             }));
             
-            Alert.alert('Success', 'Electricity bill scanned successfully!');
-        } catch (error) {
-            console.error('OCR Error:', error);
-            Alert.alert('Error', 'Failed to scan electricity bill');
-        } finally {
-            setOcrLoading(false);
+            // Clear the params to avoid reprocessing
+            navigation.setParams({ ocrData: undefined });
         }
-    };
+    }, [route.params]);
 
     const handleSubmit = async () => {
         if (!formData.units || !formData.billingMonth) {
