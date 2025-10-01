@@ -284,6 +284,9 @@ export default function HomeScreen({ navigation }) {
     const handleSustainabilityProfile = useCallback(() => {
         navigation.navigate('SustainabilityProfile');
     }, [navigation]);
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('Dashboard'); 
+    }, [navigation]);
 
     const navigateToProfile = useCallback(() => {
         navigation.navigate('Profile', { user: user });
@@ -376,6 +379,14 @@ export default function HomeScreen({ navigation }) {
                         iconLibrary="MaterialCommunityIcons"
                         variant="primary"
                         style={styles.getStartedButton}
+                    />
+                     <ActionButton
+                        title="View My Eco Dashboard"
+                        onPress={navigateToDashboard} 
+                        icon="view-dashboard"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary" 
+                        style={styles.challengesButton} 
                     />
                     
                     <ActionButton

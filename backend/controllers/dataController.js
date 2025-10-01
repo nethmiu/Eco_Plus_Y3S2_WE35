@@ -1,6 +1,8 @@
 const ElectricityUsage = require('../models/electricityUsageModel');
 const WaterUsage = require('../models/waterUsageModel');
 const WasteUsage = require('../models/wasteUsageModel');
+const asyncHandler = require('express-async-handler'); 
+
 const SustainabilityProfile = require('../models/sustainabilityProfileModel');
 
 exports.addElectricityData = async (req, res) => {
@@ -141,6 +143,98 @@ exports.getWasteHistory = async (req, res) => {
         });
     }
 };
+
+// @desc    Get all data for the user dashboard
+// @route   GET /api/data/dashboard
+// @access  Private
+exports.getDashboardData = asyncHandler(async (req, res) => {
+    const userId = req.user.id; 
+
+    // 1. Database eken user ge data okkoma gannawa
+   const electricityData = await ElectricityUsage.find({ userId: userId });
+const waterData = await WaterUsage.find({ userId: userId });
+const wasteData = await WasteUsage.find({ userId: userId });
+
+    console.log("==========================================");
+    console.log(`[Dashboard] Fetching data for user ID: ${userId}`);
+
+     console.log(`[Dashboard] Electricity documents found: ${electricityData.length}`);
+   
+    // console.log(electricityData);
+    
+    console.log(`[Dashboard] Water documents found: ${waterData.length}`);
+    console.log(`[Dashboard] Waste documents found: ${wasteData.length}`);
+    console.log("==========================================");
+    
+
+    // 2. Eco Score Calculation
+    let ecoScore = 100;
+
+    // Electricity usage (1 unit = 0.2 points)
+    const totalElectricityUnits = electricityData.reduce((sum, item) => sum + (item.units || 0), 0);
+    ecoScore -= totalElectricityUnits * 0.2;
+
+    // Water usage (1 unit/liter = 0.1 points)
+    const totalWaterUnits = waterData.reduce((sum, item) => sum + (item.units || 0), 0);
+    ecoScore -= totalWaterUnits * 0.1;
+
+    // Waste calculation (1 bag = 0.3 points)
+    const totalWasteBags = wasteData.reduce((sum, item) => sum + (item.plasticBags || 0) + (item.paperBags || 0) + (item.foodWasteBags || 0), 0);
+    ecoScore -= totalWasteBags * 0.3; 
+
+    // Score eka 0ta adu wenne nathuwa hadamu
+    ecoScore = Math.max(0, Math.round(ecoScore));
+
+  
+    const chartData = {
+        labels: electricityData.length > 0 ? 
+            electricityData
+                .sort((a, b) => new Date(a.billingMonth) - new Date(b.billingMonth)) 
+                .slice(-6) 
+                .map(d => new Date(d.billingMonth).toLocaleString('default', { month: 'short' })) 
+            : ['Start'], 
+        datasets: [{
+            data: electricityData.length > 0 ? 
+                electricityData
+                    .sort((a, b) => new Date(a.billingMonth) - new Date(b.billingMonth))
+                    .slice(-6)
+                    .map(d => d.units)
+                : [0], 
+            legend: ["Electricity Usage (Units)"]
+        }]
+    };
+    
+    // 4. Key Metrics (dashboard eke podi cards) hadamu
+    const keyMetrics = [
+       
+        { 
+            id: 1, 
+            title: 'Last Electricity Bill', 
+           
+            value: `${electricityData.length > 0 ? electricityData[electricityData.length - 1].units : 0} Units`, 
+            icon: 'flash-outline' 
+        },
+        { 
+            id: 2, 
+            title: 'Last Water Bill', 
+            value: `${waterData.length > 0 ? waterData[waterData.length - 1].units : 0} Units`, 
+            icon: 'water-outline' 
+        },
+        { 
+            id: 3, 
+            title: 'Last Waste Entry', 
+            value: `${wasteData.length > 0 ? (wasteData[wasteData.length - 1].plasticBags + wasteData[wasteData.length - 1].paperBags + wasteData[wasteData.length - 1].foodWasteBags) : 0} Bags`, 
+            icon: 'trash-can-outline' 
+        },
+    ];
+
+    
+    res.status(200).json({
+        ecoScore,
+        keyMetrics,
+        chartData
+    });
+});
 
 // Helper function to get week number
 function getWeekNumber(d) {
