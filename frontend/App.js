@@ -38,9 +38,9 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Landing" screenOptions={{ headerShown: false }}>
         
-        {/* --- ඔක්කොම Screens ටික --- */}
+      
         <Stack.Screen name="Landing" component={LandingScreen} /> 
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
@@ -63,7 +63,7 @@ export default function App() {
         <Stack.Screen name="WaterData" component={WaterDataScreen} />
         <Stack.Screen name="WasteData" component={WasteDataScreen} />
         
-        {/* SustainabilityProfile කියන එක මෙතනිනුත් අයින් කලා */}
+       
 
         <Stack.Screen name="MapScreen" component={MapScreen} />
         
