@@ -3,6 +3,7 @@ const WaterUsage = require('../models/waterUsageModel');
 const WasteUsage = require('../models/wasteUsageModel');
 const asyncHandler = require('express-async-handler'); 
 
+const SustainabilityProfile = require('../models/sustainabilityProfileModel');
 
 exports.addElectricityData = async (req, res) => {
     try {
@@ -232,3 +233,92 @@ function getWeekNumber(d) {
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return weekNo;
 }
+
+
+
+exports.setSustainabilityProfile = async (req, res) => {
+    try {
+        const { 
+            primaryWaterSources,
+            separateWaste,
+            compostWaste,
+            plasticBagSize,
+            foodWasteBagSize,
+            paperWasteBagSize
+        } = req.body;
+
+        // Validate required fields
+        if (!primaryWaterSources || separateWaste === undefined) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Primary water sources and waste separation status are required'
+            });
+        }
+
+        // Check if profile already exists for this user
+        let existingProfile = await SustainabilityProfile.findOne({ 
+            userId: req.user.id 
+        });
+
+        if (existingProfile) {
+            // Update existing profile
+            existingProfile.primaryWaterSources = primaryWaterSources;
+            existingProfile.separateWaste = separateWaste;
+            existingProfile.compostWaste = compostWaste || false;
+            existingProfile.plasticBagSize = plasticBagSize || 5;
+            existingProfile.foodWasteBagSize = foodWasteBagSize || 5;
+            existingProfile.paperWasteBagSize = paperWasteBagSize || 5;
+            existingProfile.lastUpdated = new Date();
+
+            await existingProfile.save();
+        } else {
+            // Create new profile
+            existingProfile = await SustainabilityProfile.create({
+                userId: req.user.id,
+                primaryWaterSources,
+                separateWaste,
+                compostWaste: compostWaste || false,
+                plasticBagSize: plasticBagSize || 5,
+                foodWasteBagSize: foodWasteBagSize || 5,
+                paperWasteBagSize: paperWasteBagSize || 5,
+                profileCompleted: true
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Sustainability profile updated successfully',
+            data: { sustainabilityProfile: existingProfile }
+        });
+    } catch (err) {
+        res.status(400).json({ 
+            status: 'fail', 
+            message: err.message 
+        });
+    }
+};
+
+exports.getSustainabilityProfile = async (req, res) => {
+    try {
+        const profile = await SustainabilityProfile.findOne({ 
+            userId: req.user.id 
+        });
+
+        if (!profile) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Sustainability profile not found'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: { sustainabilityProfile: profile }
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Error fetching sustainability profile' 
+        });
+    }
+};

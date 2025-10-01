@@ -18,4 +18,8 @@ router.get('/waste', protect, dataController.getWasteHistory);
 
 router.get('/dashboard', protect, dataController.getDashboardData);
 
+//Sustainability Profile routes
+router.post('/set-profile', dataController.setSustainabilityProfile);
+router.get('/get-profile', dataController.getSustainabilityProfile);
+
 module.exports = router;

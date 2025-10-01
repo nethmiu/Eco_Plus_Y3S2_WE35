@@ -7,14 +7,15 @@ import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen'; 
-import ProfileScreen from './screens/ProfileScreen'; // මේක තමයි හරි file එක
+import ProfileScreen from './screens/ProfileScreen'; 
 import EditAdminProfile from './screens/EditAdminProfile';
 import EditEnvProfile from './screens/EditEnvProfile';
 
 import ElectricityDataScreen from './screens/ElectricityDataScreen';
 import WaterDataScreen from './screens/WaterDataScreen';
 import WasteDataScreen from './screens/WasteDataScreen';
-// SustainabilityProfile කියන එක අයින් කලා
+
+import SustainabilityProfileScreen from './screens/SustainabilityProfile';
 
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
@@ -66,6 +67,7 @@ export default function App() {
         <Stack.Screen name="MapScreen" component={MapScreen} />
         
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="SustainabilityProfile" component={SustainabilityProfileScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>
