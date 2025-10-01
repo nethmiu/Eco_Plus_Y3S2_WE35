@@ -1,7 +1,17 @@
 // frontend/screens/DashboardScreen.js
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    ScrollView, 
+    Dimensions, 
+    SafeAreaView, 
+    ActivityIndicator, 
+    RefreshControl 
+} from 'react-native';
 import axios from 'axios';
 import { LineChart } from 'react-native-chart-kit';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,68 +27,64 @@ const DashboardScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
 
     // =================================================================
-    //  DATA FETCHING LOGIC (useEffect Hook)
+    //  DATA FETCHING LOGIC - useFocusEffect 
     // =================================================================
-    const fetchDashboardData = async () => {
-    try {
-        // ✅ Step 1: Retrieve stored user token
-        const token = await SecureStore.getItemAsync('userToken'); 
-
-        if (!token) {
-            setError("Authentication Token not found. Please login again.");
-            setLoading(false);
-            return;
+    const fetchDashboardData = useCallback(async () => {
+        if (!refreshing) {
+            setLoading(true);
         }
 
-        // ✅ Step 2: Prepare headers for API request
-        const axiosConfig = {
-            headers: {
-                Authorization: `Bearer ${token}`
+        try {
+            const token = await SecureStore.getItemAsync('userToken'); 
+            if (!token) {
+                setError("Authentication Token not found. Please login again.");
+                setLoading(false);
+                return;
             }
-        };
 
-        // ✅ Step 3: Make API request to backend endpoint
-        const response = await axios.get(`http://${config.IP}:${config.PORT}/api/data/dashboard`, axiosConfig);
+            const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
+            const response = await axios.get(`http://${config.IP}:${config.PORT}/api/data/dashboard`, axiosConfig);
+            console.log("Response from Backend:", JSON.stringify(response.data, null, 2));
+            const data = response.data;
 
-        const dashboardData = response.data;
+            if (!data.chartData || !data.chartData.labels?.length || data.chartData.datasets[0].data.length === 0) {
+                data.chartData = {
+                    labels: ['Start'], 
+                    datasets: [{ data: [0] }],
+                };
+            }
 
-        // ✅ Step 4: Fallback chart data if missing
-        if (!dashboardData.chartData || !dashboardData.chartData.labels?.length) {
-            dashboardData.chartData = {
-                labels: ['Start'],
-                datasets: [{ data: [0] }],
-                legend: ["No electricity data yet"]
-            };
+            setDashboardData(data);
+            setError(null);
+
+        } catch (err) {
+            console.error("Error while fetching dashboard data:", err.response?.data || err.message);
+            setError("Could not load your dashboard data. Please try again.");
+        } finally {
+            setLoading(false);
+            setRefreshing(false); 
         }
+    }, [refreshing]);
 
-        setDashboardData(dashboardData);
-        setError(null);
-
-    } catch (err) {
-        console.error("Error while fetching dashboard data:", err.response?.data || err.message);
-        setError("Could not load your dashboard data. Please try again.");
-    } finally {
-        setLoading(false);
-        setRefreshing(false); 
-    }
-};
-
-    useEffect(() => {
-        fetchDashboardData();
-    }, []); // Runs once when screen is loaded
+    // This hook runs every time the screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchDashboardData();
+        }, [fetchDashboardData])
+    );
 
     // Pull-to-refresh logic
-    const onRefresh = () => {
+    const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchDashboardData();
-    };
+    }, [fetchDashboardData]);
 
     // =================================================================
-    //  THEME LOGIC (Based on ECO Score)
+    //  DYNAMIC THEME LOGIC
     // =================================================================
     const getTheme = (score) => {
-        if (score >= 75) return { background: '#E8F5E9', primary: '#4CAF50', text: '#1B5E20', scoreColor: '#2E7D32' };
-        if (score >= 50) return { background: '#FFF3E0', primary: '#FF9800', text: '#E65100', scoreColor: '#F57C00' };
+        if (score >= 50) return { background: '#E8F5E9', primary: '#4CAF50', text: '#1B5E20', scoreColor: '#2E7D32' };
+        if (score >= 75) return { background: '#FFF3E0', primary: '#FF9800', text: '#E65100', scoreColor: '#F57C00' };
         return { background: '#FFEBEE', primary: '#F44336', text: '#B71C1C', scoreColor: '#D32F2F' };
     };
 
@@ -88,30 +94,29 @@ const DashboardScreen = () => {
 
     if (loading) {
         return (
-            <SafeAreaView style={[styles.safeArea, {backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center'}]}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text style={{marginTop: 10}}>Loading your Eco Dashboard...</Text>
+            <SafeAreaView style={[styles.safeArea, styles.centerContainer]}>
+                <ActivityIndicator size="large" color="#4caf50" />
+                <Text style={styles.loadingText}>Loading your Eco Dashboard...</Text>
             </SafeAreaView>
         );
     }
     
     if (error) {
         return (
-            <SafeAreaView style={[styles.safeArea, {backgroundColor: '#FFEBEE', justifyContent: 'center', alignItems: 'center'}]}>
+            <SafeAreaView style={[styles.safeArea, styles.centerContainer, { backgroundColor: '#FFEBEE' }]}>
                 <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#B71C1C" />
-                <Text style={{marginTop: 10, color: '#B71C1C', textAlign: 'center', padding: 20}}>{error}</Text>
+                <Text style={styles.errorText}>{error}</Text>
             </SafeAreaView>
         );
     }
-
-    // Apply theme based on score
+    
     const theme = getTheme(dashboardData.ecoScore);
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
             <ScrollView 
                 contentContainerStyle={styles.container}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />}
             >
                 <View style={styles.header}>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Your Eco Dashboard</Text>
@@ -148,13 +153,13 @@ const DashboardScreen = () => {
                             backgroundGradientFrom: '#ffffff',
                             backgroundGradientTo: '#ffffff',
                             decimalPlaces: 0,
-                            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                            color: (opacity = 1) => theme.primary,
                             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                             style: { borderRadius: 16 },
                             propsForDots: { r: "4", strokeWidth: "2", stroke: theme.primary }
                         }}
                         bezier
-                        style={{ marginVertical: 8, borderRadius: 16 }}
+                        style={styles.chart}
                     />
                 </View>
             </ScrollView>
@@ -165,20 +170,113 @@ const DashboardScreen = () => {
 // --- Stylesheet ---
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    container: { padding: 16, paddingBottom: 40 },
-    header: { marginBottom: 24 },
-    headerTitle: { fontSize: 28, fontWeight: 'bold' },
-    scoreCard: { borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-    scoreLabel: { fontSize: 16, fontWeight: '600', marginBottom: 16 },
-    scoreCircle: { width: 150, height: 150, borderRadius: 75, borderWidth: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-    scoreValue: { fontSize: 52, fontWeight: 'bold' },
-    scoreFeedback: { fontSize: 16, fontStyle: 'italic' },
-    metricsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
-    metricCard: { flex: 1, marginHorizontal: 6, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 },
-    metricTitle: { fontSize: 12, fontWeight: '600', marginTop: 8, color: '#666' },
-    metricValue: { fontSize: 18, fontWeight: 'bold', marginTop: 4 },
-    chartCard: { borderRadius: 20, padding: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-    chartTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+    centerContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#333'
+    },
+    errorText: {
+        marginTop: 10,
+        color: '#B71C1C',
+        textAlign: 'center',
+        padding: 20,
+        fontSize: 16
+    },
+    container: { 
+        padding: 16, 
+        paddingBottom: 40 
+    },
+    header: { 
+        marginBottom: 24 
+    },
+    headerTitle: { 
+        fontSize: 28, 
+        fontWeight: 'bold' 
+    },
+    scoreCard: { 
+        borderRadius: 20, 
+        padding: 24, 
+        alignItems: 'center', 
+        marginBottom: 24, 
+        elevation: 4, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 8 
+    },
+    scoreLabel: { 
+        fontSize: 16, 
+        fontWeight: '600', 
+        marginBottom: 16 
+    },
+    scoreCircle: { 
+        width: 150, 
+        height: 150, 
+        borderRadius: 75, 
+        borderWidth: 8, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginBottom: 16 
+    },
+    scoreValue: { 
+        fontSize: 52, 
+        fontWeight: 'bold' 
+    },
+    scoreFeedback: { 
+        fontSize: 16, 
+        fontStyle: 'italic' 
+    },
+    metricsContainer: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        marginBottom: 24 
+    },
+    metricCard: { 
+        flex: 1, 
+        marginHorizontal: 6, 
+        borderRadius: 16, 
+        padding: 16, 
+        alignItems: 'center', 
+        elevation: 3, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 1 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 4 
+    },
+    metricTitle: { 
+        fontSize: 12, 
+        fontWeight: '600', 
+        marginTop: 8, 
+        color: '#666' 
+    },
+    metricValue: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        marginTop: 4 
+    },
+    chartCard: { 
+        borderRadius: 20, 
+        padding: 16, 
+        elevation: 4, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 8 
+    },
+    chartTitle: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        marginBottom: 8,
+        paddingLeft: 16, // To align with chart
+    },
+    chart: {
+        marginVertical: 8,
+        borderRadius: 16,
+    }
 });
 
 export default DashboardScreen;

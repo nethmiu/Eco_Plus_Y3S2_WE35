@@ -151,9 +151,21 @@ exports.getDashboardData = asyncHandler(async (req, res) => {
     const userId = req.user.id; 
 
     // 1. Database eken user ge data okkoma gannawa
-    const electricityData = await ElectricityUsage.find({ user: userId });
-    const waterData = await WaterUsage.find({ user: userId });
-    const wasteData = await WasteUsage.find({ user: userId });
+   const electricityData = await ElectricityUsage.find({ userId: userId });
+const waterData = await WaterUsage.find({ userId: userId });
+const wasteData = await WasteUsage.find({ userId: userId });
+
+    console.log("==========================================");
+    console.log(`[Dashboard] Fetching data for user ID: ${userId}`);
+
+     console.log(`[Dashboard] Electricity documents found: ${electricityData.length}`);
+   
+    // console.log(electricityData);
+    
+    console.log(`[Dashboard] Water documents found: ${waterData.length}`);
+    console.log(`[Dashboard] Waste documents found: ${wasteData.length}`);
+    console.log("==========================================");
+    
 
     // 2. Eco Score Calculation
     let ecoScore = 100;

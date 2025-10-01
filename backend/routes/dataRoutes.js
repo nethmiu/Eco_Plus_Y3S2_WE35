@@ -1,24 +1,32 @@
+// backend/routes/dataRoutes.js (FIXED & IMPROVED VERSION)
+
 const express = require('express');
 const router = express.Router();
 const dataController = require('../controllers/dataController');
 
-const { protect } = require('../Middleware/authMiddleware'); 
-// Electricity routes
 
-router.post('/electricity', protect, dataController.addElectricityData); 
-router.get('/electricity', protect, dataController.getElectricityHistory); 
+const authMiddleware = require('../Middleware/authMiddleware'); 
+
+
+router.use(authMiddleware.protect);
+
+
+// Electricity routes
+router.post('/electricity', dataController.addElectricityData); 
+router.get('/electricity', dataController.getElectricityHistory); 
 
 // Water routes
-router.post('/water', protect, dataController.addWaterData); 
-router.get('/water', protect, dataController.getWaterHistory); 
+router.post('/water', dataController.addWaterData); 
+router.get('/water', dataController.getWaterHistory); 
 
 // Waste routes
-router.post('/waste', protect, dataController.addWasteData); 
-router.get('/waste', protect, dataController.getWasteHistory); 
+router.post('/waste', dataController.addWasteData); 
+router.get('/waste', dataController.getWasteHistory); 
 
-router.get('/dashboard', protect, dataController.getDashboardData);
+// GIMHAN'S DASHBOARD ROUTE
+router.get('/dashboard', dataController.getDashboardData);
 
-//Sustainability Profile routes
+
 router.post('/set-profile', dataController.setSustainabilityProfile);
 router.get('/get-profile', dataController.getSustainabilityProfile);
 
