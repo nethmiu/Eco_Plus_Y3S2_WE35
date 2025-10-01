@@ -277,7 +277,11 @@ export default function HomeScreen({ navigation }) {
         );
     }, [navigation]);
 
-    const handleGetStarted = useCallback(() => {
+    const handleConsumptions = useCallback(() => {
+        navigation.navigate('ElectricityData');
+    }, [navigation]);
+
+    const handleSustainabilityProfile = useCallback(() => {
         navigation.navigate('SustainabilityProfile');
     }, [navigation]);
 
@@ -356,11 +360,19 @@ export default function HomeScreen({ navigation }) {
                     ]}
                 >
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
-                    
                     <ActionButton
-                        title="Get Started"
-                        onPress={handleGetStarted}
-                        icon="play-circle"
+                        title="Setup Profile"
+                        onPress={handleSustainabilityProfile}
+                        icon="leaf-circle"   
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="primary"
+                        style={styles.getStartedButton}
+                    />
+
+                    <ActionButton
+                        title="Add Consumption Data"
+                        onPress={handleConsumptions}
+                        icon="chart-areaspline"  
                         iconLibrary="MaterialCommunityIcons"
                         variant="primary"
                         style={styles.getStartedButton}

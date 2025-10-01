@@ -22,6 +22,7 @@ const TOKEN_KEY = 'userToken';
 
 export default function WaterDataScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
+    const [ocrLoading, setOcrLoading] = useState(false);
     const [formData, setFormData] = useState({
         billingMonth: new Date(),
         units: '',
@@ -30,8 +31,8 @@ export default function WaterDataScreen({ navigation }) {
         accountNo: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [step, setStep] = useState(4);
-    const [totalSteps] = useState(4);
+    const [step, setStep] = useState(2);
+    const [totalSteps] = useState(3);
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -43,6 +44,11 @@ export default function WaterDataScreen({ navigation }) {
             setFormData(prev => ({ ...prev, billingMonth: selectedDate }));
         }
     };
+
+    const handleOcrScan = () => {
+    navigation.navigate('CameraScreen', { formType: 'electricity' });
+};
+
 
     const handleSubmit = async () => {
         if (!formData.units || !formData.billingMonth) {
@@ -135,7 +141,25 @@ export default function WaterDataScreen({ navigation }) {
                     <View style={styles.cardHeader}>
                         <Ionicons name="water-outline" size={24} color="#4A90E2" />
                         <Text style={styles.sectionTitle}>Water Usage</Text>
+                        <TouchableOpacity 
+                            style={[
+                                styles.cameraButton,
+                                ocrLoading && styles.cameraButtonDisabled
+                            ]}
+                            onPress={handleOcrScan}
+                            disabled={ocrLoading}
+                        >
+                            {ocrLoading ? (
+                                <ActivityIndicator size="small" color="#4A90E2" />
+                            ) : (
+                                <Ionicons name="camera-outline" size={20} color="#4A90E2" />
+                            )}
+                        </TouchableOpacity>
                     </View>
+
+                    <Text style={styles.ocrHint}>
+                        Tap the camera icon to scan your water bill automatically
+                    </Text>
 
                     {/* Billing Month */}
                     <View style={styles.inputGroup}>
@@ -330,6 +354,30 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2C3E50',
         marginLeft: 10,
+        flex: 1,
+    },
+    cameraButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#E8F4FD',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#4A90E2',
+    },
+    cameraButtonDisabled: {
+        opacity: 0.6,
+    },
+    ocrHint: {
+        fontSize: 14,
+        color: '#666',
+        fontStyle: 'italic',
+        marginBottom: 15,
+        textAlign: 'center',
+        backgroundColor: '#F8F9FA',
+        padding: 10,
+        borderRadius: 8,
     },
     inputGroup: {
         marginBottom: 20,
