@@ -3,8 +3,10 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
+
 const userRoutes = require('./routes/userRoutes');
 const dataRoutes = require('./routes/dataRoutes');
+  
 const challengeRoutes = require('./routes/challengeRoutes'); 
 
 dotenv.config();
@@ -30,6 +32,9 @@ app.get('/', (req, res) => {
 // User Routes
 app.use('/api/users', userRoutes);
 app.use('/api/data', dataRoutes);
+
+
+
 
 // Challenge Routes (අලුතින් එකතු කළා)
 app.use('/api/challenges', challengeRoutes);

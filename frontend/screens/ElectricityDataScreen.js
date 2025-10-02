@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect import
+import React, { useState, useEffect } from 'react'; 
 import { 
     View, 
     Text, 
@@ -21,7 +21,7 @@ import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
-export default function ElectricityDataScreen({ navigation, route }) { // Added route prop
+export default function ElectricityDataScreen({ navigation, route }) {
     const [loading, setLoading] = useState(false);
     const [ocrLoading, setOcrLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -56,16 +56,16 @@ export default function ElectricityDataScreen({ navigation, route }) { // Added 
             const { ocrData } = route.params;
             setFormData(prev => ({
                 ...prev,
-                units: ocrData.units || '',
-                lastReading: ocrData.lastReading || '',
-                latestReading: ocrData.latestReading || '',
+                // Only extract units, readings, and account number - keep manual date picker
+                units: ocrData.units ? ocrData.units.toString() : '',
+                lastReading: ocrData.lastReading ? ocrData.lastReading.toString() : '',
+                latestReading: ocrData.latestReading ? ocrData.latestReading.toString() : '',
                 accountNo: ocrData.accountNo || ''
             }));
-            
-            // Clear the params to avoid reprocessing
-            navigation.setParams({ ocrData: undefined });
+            // Clear the param to avoid re-processing
+            navigation.setParams({ ocrData: null });
         }
-    }, [route.params]);
+    }, [route.params?.ocrData]);
 
     const handleSubmit = async () => {
         if (!formData.units || !formData.billingMonth) {
@@ -113,10 +113,6 @@ export default function ElectricityDataScreen({ navigation, route }) { // Added 
     };
 
     const handleNext = () => {
-        if (!formData.units) {
-            Alert.alert('Validation Error', 'Please fill in required fields before proceeding');
-            return;
-        }
         navigation.navigate('WaterData');
     };
 
@@ -178,7 +174,7 @@ export default function ElectricityDataScreen({ navigation, route }) { // Added 
                         Tap the camera icon to scan your electricity bill automatically
                     </Text>
 
-                    {/* Billing Month */}
+                    {/* Billing Month - Manual selection only */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Billing Month *</Text>
                         <TouchableOpacity 
@@ -288,11 +284,10 @@ export default function ElectricityDataScreen({ navigation, route }) { // Added 
                     <TouchableOpacity
                         style={[
                             styles.button,
-                            { backgroundColor: '#28A745' },
-                            (!formData.units) && styles.buttonDisabled
+                            { backgroundColor: '#28A745' }
                         ]}
                         onPress={handleNext}
-                        disabled={!formData.units || loading}
+                        disabled={loading}
                     >
                         <View style={styles.buttonContent}>
                             <Ionicons name="arrow-forward-outline" size={20} color="#fff" />

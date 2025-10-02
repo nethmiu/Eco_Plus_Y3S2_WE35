@@ -1,16 +1,5 @@
-import React, { useState } from 'react';
-import { 
-    View, 
-    Text, 
-    TextInput, 
-    TouchableOpacity, 
-    StyleSheet, 
-    ScrollView, 
-    Alert, 
-    ActivityIndicator,
-    SafeAreaView,
-    StatusBar
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
@@ -20,7 +9,7 @@ import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
-export default function WaterDataScreen({ navigation }) {
+export default function WaterDataScreen({ navigation, route }) {
     const [loading, setLoading] = useState(false);
     const [ocrLoading, setOcrLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -46,9 +35,25 @@ export default function WaterDataScreen({ navigation }) {
     };
 
     const handleOcrScan = () => {
-    navigation.navigate('CameraScreen', { formType: 'electricity' });
-};
+        navigation.navigate('CameraScreen', { formType: 'water' });
+    };
 
+    // Handle OCR data when returning from camera
+    useEffect(() => {
+        if (route.params?.ocrData) {
+            const { ocrData } = route.params;
+            setFormData(prev => ({
+                ...prev,
+                // Only extract units, readings, and account number - keep manual date picker
+                units: ocrData.units ? ocrData.units.toString() : '',
+                lastReading: ocrData.lastReading ? ocrData.lastReading.toString() : '',
+                latestReading: ocrData.latestReading ? ocrData.latestReading.toString() : '',
+                accountNo: ocrData.accountNo || ''
+            }));
+            // Clear the param to avoid re-processing
+            navigation.setParams({ ocrData: null });
+        }
+    }, [route.params?.ocrData]);
 
     const handleSubmit = async () => {
         if (!formData.units || !formData.billingMonth) {
@@ -96,10 +101,6 @@ export default function WaterDataScreen({ navigation }) {
     };
 
     const handleNext = () => {
-        if (!formData.units) {
-            Alert.alert('Validation Error', 'Please fill in required fields before proceeding');
-            return;
-        }
         navigation.navigate('WasteData');
     };
 
@@ -161,7 +162,7 @@ export default function WaterDataScreen({ navigation }) {
                         Tap the camera icon to scan your water bill automatically
                     </Text>
 
-                    {/* Billing Month */}
+                    {/* Billing Month - Manual selection only */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Billing Month *</Text>
                         <TouchableOpacity 
@@ -271,11 +272,10 @@ export default function WaterDataScreen({ navigation }) {
                     <TouchableOpacity
                         style={[
                             styles.button,
-                            { backgroundColor: '#28A745' },
-                            (!formData.units) && styles.buttonDisabled
+                            { backgroundColor: '#28A745' }
                         ]}
                         onPress={handleNext}
-                        disabled={!formData.units || loading}
+                        disabled={loading}
                     >
                         <View style={styles.buttonContent}>
                             <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
