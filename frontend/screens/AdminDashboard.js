@@ -10,10 +10,11 @@ import {
     Animated,
     Dimensions,
     StatusBar,
-    ScrollView
+    ScrollView,
+    Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import { MaterialCommunityIcons, Ionicons, Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
@@ -67,11 +68,8 @@ const ElegantLoader = () => {
     });
 
     return (
-        <View style={styles.loaderContainer}>
-            <LinearGradient
-                colors={['#E8F5E8', '#F0F8F0']}
-                style={styles.loaderGradient}
-            >
+        <View style={styles.loadingContainer}>
+            <View style={styles.loadingContent}>
                 <Animated.View
                     style={[
                         styles.loaderCircle,
@@ -80,23 +78,61 @@ const ElegantLoader = () => {
                         }
                     ]}
                 >
-                    <LinearGradient
-                        colors={['#4CAF50', '#388E3C', '#2E7D32']}
-                        style={styles.loaderInner}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    />
+                    <MaterialCommunityIcons name="shield-crown" size={32} color="#667EEA" />
                 </Animated.View>
-                <Text style={styles.loaderText}>Verifying Access...</Text>
-            </LinearGradient>
+                <Text style={styles.loadingText}>Verifying Access...</Text>
+            </View>
         </View>
     );
 };
 
+// Profile Avatar Component
+const ProfileAvatar = React.memo(({ user }) => {
+    const [imageError, setImageError] = useState(false);
+    
+    const getProfileImageUrl = () => {
+        if (user?.photo && user.photo !== 'default.jpg') {
+            return `http://${config.IP}:${config.PORT}/api/users/uploads/users/${user.photo}`;
+        }
+        return null;
+    };
+
+    const profileImageUrl = getProfileImageUrl();
+
+    if (profileImageUrl && !imageError) {
+        return (
+            <View style={styles.avatarContainer}>
+                <Image
+                    source={{ uri: profileImageUrl }}
+                    style={styles.profileImage}
+                    onError={() => setImageError(true)}
+                />
+                <View style={styles.adminIndicator}>
+                    <MaterialCommunityIcons name="crown" size={14} color="#FFD700" />
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.avatarContainer}>
+            <View style={styles.defaultAvatar}>
+                <MaterialCommunityIcons name="account-tie" size={32} color="#667EEA" />
+            </View>
+            <View style={styles.adminIndicator}>
+                <MaterialCommunityIcons name="crown" size={14} color="#FFD700" />
+            </View>
+        </View>
+    );
+});
+
 // Dashboard Stats Card Component
-const StatsCard = ({ title, subtitle, icon, color, delay }) => {
+const StatsCard = ({ title, subtitle, icon, iconLibrary = 'MaterialCommunityIcons', color, delay }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
+
+    const IconComponent = iconLibrary === 'Ionicons' ? Ionicons : 
+                       iconLibrary === 'Feather' ? Feather : MaterialCommunityIcons;
 
     useEffect(() => {
         Animated.sequence([
@@ -127,29 +163,27 @@ const StatsCard = ({ title, subtitle, icon, color, delay }) => {
                 }
             ]}
         >
-            <LinearGradient
-                colors={[color.light, color.main]}
-                style={styles.statsCardGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                <View style={styles.statsIconContainer}>
-                    <Text style={styles.statsIcon}>{icon}</Text>
+            <View style={[styles.statsCardContent, { backgroundColor: color.bg }]}>
+                <View style={[styles.statsIconContainer, { backgroundColor: color.iconBg }]}>
+                    <IconComponent name={icon} size={24} color={color.icon} />
                 </View>
                 <View style={styles.statsTextContainer}>
                     <Text style={styles.statsTitle}>{title}</Text>
                     <Text style={styles.statsSubtitle}>{subtitle}</Text>
                 </View>
-            </LinearGradient>
+            </View>
         </Animated.View>
     );
 };
 
 // Action Button Component
-const ActionButton = ({ title, icon, onPress, variant = 'primary', delay }) => {
+const ActionButton = ({ title, icon, iconLibrary = 'MaterialCommunityIcons', onPress, variant = 'primary', delay }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(40)).current;
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+    const IconComponent = iconLibrary === 'Ionicons' ? Ionicons : 
+                       iconLibrary === 'Feather' ? Feather : MaterialCommunityIcons;
 
     useEffect(() => {
         Animated.sequence([
@@ -176,32 +210,37 @@ const ActionButton = ({ title, icon, onPress, variant = 'primary', delay }) => {
         ]).start();
     }, []);
 
-    const getButtonStyle = () => {
+    const getButtonConfig = () => {
         switch (variant) {
             case 'primary':
                 return {
-                    colors: ['#4CAF50', '#388E3C', '#2E7D32'],
+                    bg: '#4CAF50',
                     shadowColor: '#4CAF50'
                 };
             case 'secondary':
                 return {
-                    colors: ['#FF9800', '#F57C00', '#E65100'],
-                    shadowColor: '#FF9800'
+                    bg: '#667EEA',
+                    shadowColor: '#667EEA'
+                };
+            case 'profile':
+                return {
+                    bg: '#2196F3',
+                    shadowColor: '#2196F3'
                 };
             case 'danger':
                 return {
-                    colors: ['#F44336', '#D32F2F', '#C62828'],
-                    shadowColor: '#F44336'
+                    bg: '#EF4444',
+                    shadowColor: '#EF4444'
                 };
             default:
                 return {
-                    colors: ['#4CAF50', '#388E3C', '#2E7D32'],
+                    bg: '#4CAF50',
                     shadowColor: '#4CAF50'
                 };
         }
     };
 
-    const buttonConfig = getButtonStyle();
+    const buttonConfig = getButtonConfig();
 
     return (
         <Animated.View
@@ -222,24 +261,20 @@ const ActionButton = ({ title, icon, onPress, variant = 'primary', delay }) => {
                 style={[
                     styles.actionButton,
                     {
+                        backgroundColor: buttonConfig.bg,
                         shadowColor: buttonConfig.shadowColor,
                     }
                 ]}
             >
-                <LinearGradient
-                    colors={buttonConfig.colors}
-                    style={styles.actionButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                >
+                <View style={styles.actionButtonContent}>
                     <View style={styles.actionButtonIcon}>
-                        <Text style={styles.actionButtonIconText}>{icon}</Text>
+                        <IconComponent name={icon} size={20} color="#FFFFFF" />
                     </View>
                     <Text style={styles.actionButtonText}>{title}</Text>
                     <View style={styles.actionButtonArrow}>
-                        <Text style={styles.actionButtonArrowText}>→</Text>
+                        <Feather name="chevron-right" size={16} color="#FFFFFF" />
                     </View>
-                </LinearGradient>
+                </View>
             </TouchableOpacity>
         </Animated.View>
     );
@@ -315,6 +350,32 @@ export default function AdminDashboard({ navigation }) {
         );
     };
 
+    const handleEditProfile = () => {
+        if (user) {
+            navigation.navigate('EditAdminProfile', { 
+                admin: user,
+                onPasswordChangeSuccess: handlePasswordChangeSuccess 
+            });
+        }
+    };
+
+    const handlePasswordChangeSuccess = async () => {
+        Alert.alert(
+            'Password Changed Successfully',
+            'Your password has been updated successfully. You will be logged out for security purposes.',
+            [
+                {
+                    text: 'OK',
+                    onPress: async () => {
+                        await SecureStore.deleteItemAsync(TOKEN_KEY);
+                        navigation.replace('Login');
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    };
+
     if (loading) {
         return <ElegantLoader />;
     }
@@ -327,263 +388,410 @@ export default function AdminDashboard({ navigation }) {
     };
 
     return (
-        <>
-            <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
-            <SafeAreaView style={styles.safeArea}>
-                <LinearGradient
-                    colors={['#E8F5E8', '#F1F8E9', '#F9FBE7']}
-                    style={styles.container}
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+            
+            <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                {/* Hero Header */}
+                <Animated.View
+                    style={[
+                        styles.heroSection,
+                        {
+                            opacity: fadeAnim,
+                            transform: [{ translateY: headerSlide }]
+                        }
+                    ]}
                 >
-                    <ScrollView 
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
-                    >
-                        {/* Header Section */}
-                        <Animated.View
-                            style={[
-                                styles.header,
-                                {
-                                    opacity: fadeAnim,
-                                    transform: [{ translateY: headerSlide }]
-                                }
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={['#2E7D32', '#388E3C', '#4CAF50']}
-                                style={styles.headerGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <View style={styles.headerContent}>
-                                    <View style={styles.headerText}>
-                                        <Text style={styles.greeting}>{getGreeting()}</Text>
-                                        <Text style={styles.adminName}>{user?.name || 'Administrator'}</Text>
-                                        <View style={styles.adminBadge}>
-                                            <Text style={styles.adminBadgeText}>👑 Admin</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.headerIcon}>
-                                        <View style={styles.avatarContainer}>
-                                            <LinearGradient
-                                                colors={['#66BB6A', '#4CAF50']}
-                                                style={styles.avatar}
-                                            >
-                                                <Text style={styles.avatarText}>
-                                                    {user?.name?.charAt(0).toUpperCase() || 'A'}
-                                                </Text>
-                                            </LinearGradient>
-                                        </View>
-                                    </View>
-                                </View>
-                            </LinearGradient>
-                        </Animated.View>
+                    <View style={styles.heroContent}>
+                        <Text style={styles.heroGreeting}>{getGreeting()}</Text>
+                        <Text style={styles.heroTitle}>{user?.name || 'Administrator'}</Text>
+                        <View style={styles.adminBadge}>
+                            <MaterialCommunityIcons name="shield-crown" size={16} color="#667EEA" />
+                            <Text style={styles.adminBadgeText}>Admin Dashboard</Text>
+                        </View>
+                    </View>
+                    <ProfileAvatar user={user} />
+                </Animated.View>
 
-                        {/* Stats Section */}
-                        <View style={styles.statsSection}>
-                            <Text style={styles.sectionTitle}>Dashboard Overview</Text>
-                            <View style={styles.statsGrid}>
-                                <StatsCard
-                                    title="Active Challenges"
-                                    subtitle="Manage & Monitor"
-                                    icon="🎯"
-                                    color={{ light: '#E8F5E8', main: '#C8E6C9' }}
-                                    delay={200}
-                                />
-                                <StatsCard
-                                    title="User Engagement"
-                                    subtitle="Track Progress"
-                                    icon="📊"
-                                    color={{ light: '#FFF3E0', main: '#FFE0B2' }}
-                                    delay={400}
-                                />
+                {/* Admin Info Card */}
+                <Animated.View
+                    style={[
+                        styles.infoCard,
+                        { 
+                            opacity: fadeAnim,
+                            transform: [{ translateY: headerSlide }]
+                        }
+                    ]}
+                >
+                    <View style={styles.infoHeader}>
+                        <MaterialCommunityIcons name="account-cog" size={24} color="#667EEA" />
+                        <Text style={styles.infoTitle}>Administrator Profile</Text>
+                    </View>
+                    <View style={styles.infoContent}>
+                        <View style={styles.infoRow}>
+                            <MaterialCommunityIcons name="email" size={16} color="#8F9BB3" />
+                            <Text style={styles.infoLabel}>Email</Text>
+                            <Text style={styles.infoValue}>{user?.email}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <MaterialCommunityIcons name="shield-check" size={16} color="#8F9BB3" />
+                            <Text style={styles.infoLabel}>Role</Text>
+                            <Text style={styles.infoValue}>{user?.role}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <MaterialCommunityIcons name="clock" size={16} color="#8F9BB3" />
+                            <Text style={styles.infoLabel}>Status</Text>
+                            <View style={styles.statusContainer}>
+                                <View style={styles.statusDot} />
+                                <Text style={styles.statusText}>Active</Text>
                             </View>
                         </View>
+                    </View>
+                    
+                    {/* Edit Profile Button in Info Card */}
+                    <TouchableOpacity
+                        onPress={handleEditProfile}
+                        activeOpacity={0.8}
+                        style={styles.editProfileButton}
+                    >
+                        <MaterialCommunityIcons name="account-edit" size={18} color="#FFFFFF" />
+                        <Text style={styles.editProfileButtonText}>Edit Admin Profile</Text>
+                    </TouchableOpacity>
+                </Animated.View>
 
-                        {/* Action Buttons Section */}
-                        <View style={styles.actionsSection}>
-                            <Text style={styles.sectionTitle}>Administrative Actions</Text>
-                            
-                            <ActionButton
-                                title="Add New Challenge"
-                                icon="➕"
-                                onPress={() => navigation.navigate('AddChallenge')}
-                                variant="primary"
-                                delay={600}
-                            />
-                            
-                            <ActionButton
-                                title="Manage Challenges"
-                                icon="⚙️"
-                                onPress={() => navigation.navigate('ManageChallenges')}
-                                variant="secondary"
-                                delay={800}
-                            />
-                            
-                            <ActionButton
-                                title="Sign Out"
-                                icon="🚪"
-                                onPress={handleLogout}
-                                variant="danger"
-                                delay={1000}
-                            />
-                        </View>
+                {/* Stats Section */}
+                <View style={styles.statsSection}>
+                    <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+                    <View style={styles.statsGrid}>
+                        <StatsCard
+                            title="Active Challenges"
+                            subtitle="Manage & Monitor"
+                            icon="target"
+                            color={{ 
+                                bg: '#f0fff4', 
+                                iconBg: '#c6f6d5', 
+                                icon: '#4CAF50' 
+                            }}
+                            delay={200}
+                        />
+                        <StatsCard
+                            title="User Engagement"
+                            subtitle="Track Progress"
+                            icon="chart-bar"
+                            iconLibrary="MaterialCommunityIcons"
+                            color={{ 
+                                bg: '#fef7e0', 
+                                iconBg: '#fbd38d', 
+                                icon: '#FF9800' 
+                            }}
+                            delay={400}
+                        />
+                    </View>
+                </View>
 
-                        {/* Footer */}
-                        <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-                            <Text style={styles.footerText}>Eco Pulse Admin Panel</Text>
-                            <Text style={styles.footerSubtext}>Powered by sustainable technology</Text>
-                        </Animated.View>
-                    </ScrollView>
-                </LinearGradient>
-            </SafeAreaView>
-        </>
+                {/* Action Buttons Section */}
+                <View style={styles.actionsSection}>
+                    <Text style={styles.sectionTitle}>Administrative Actions</Text>
+                    
+                    <ActionButton
+                        title="Add New Challenge"
+                        icon="plus-circle"
+                        onPress={() => navigation.navigate('AddChallenge')}
+                        variant="primary"
+                        delay={500}
+                    />
+                    
+                    <ActionButton
+                        title="Manage Challenges"
+                        icon="cog"
+                        onPress={() => navigation.navigate('ManageChallenges')}
+                        variant="secondary"
+                        delay={600}
+                    />
+
+                    <ActionButton
+                        title="Register New User"
+                        icon="account-plus"
+                        onPress={() => navigation.navigate('AdminRegistration')}
+                        variant="secondary"
+                        delay={700}
+                    />
+
+                    <ActionButton
+                        title="Manage Users"
+                        icon="account-group"
+                        onPress={() => navigation.navigate('ManageUsers')}
+                        variant="secondary"
+                        delay={800}
+                    />
+                           
+                    <ActionButton
+                        title="Sign Out"
+                        icon="logout"
+                        onPress={handleLogout}
+                        variant="danger"
+                        delay={900}
+                    />
+                </View>
+
+                {/* Footer */}
+                <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
+                    <Text style={styles.footerText}>Eco Pulse Admin Panel</Text>
+                    <Text style={styles.footerSubtext}>Powered by sustainable technology</Text>
+                </Animated.View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#2E7D32',
-    },
     container: {
         flex: 1,
+        backgroundColor: '#f8fafc',
     },
     scrollContent: {
         flexGrow: 1,
+        paddingTop: 60,
+        paddingBottom: 30,
     },
-    // Loader Styles
-    loaderContainer: {
-        flex: 1,
-    },
-    loaderGradient: {
+    // Loading Styles
+    loadingContainer: {
         flex: 1,
         justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+    },
+    loadingContent: {
         alignItems: 'center',
     },
     loaderCircle: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        marginBottom: 20,
-    },
-    loaderInner: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 40,
-        opacity: 0.8,
-    },
-    loaderText: {
-        fontSize: 16,
-        color: '#2E7D32',
-        fontWeight: '500',
-    },
-    // Header Styles
-    header: {
-        marginHorizontal: 20,
-        marginTop: 20,
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: '#2E7D32',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 12,
-    },
-    headerGradient: {
-        padding: 24,
-    },
-    headerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerText: {
-        flex: 1,
-    },
-    greeting: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    adminName: {
-        fontSize: 24,
-        color: '#FFFFFF',
-        fontWeight: '700',
-        marginBottom: 8,
-    },
-    adminBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
-    },
-    adminBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    headerIcon: {
-        marginLeft: 16,
-    },
-    avatarContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    avatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        alignItems: 'center',
+        backgroundColor: '#fff',
         justifyContent: 'center',
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    avatarText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-    },
-    // Stats Section
-    statsSection: {
-        marginTop: 32,
-        paddingHorizontal: 20,
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#2E7D32',
-        marginBottom: 16,
-        letterSpacing: -0.3,
-    },
-    statsGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    statsCard: {
-        flex: 1,
-        marginHorizontal: 6,
-        borderRadius: 16,
-        overflow: 'hidden',
+        alignItems: 'center',
+        marginBottom: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
-        elevation: 6,
+        elevation: 8,
     },
-    statsCardGradient: {
-        padding: 20,
+    loadingText: {
+        fontSize: 16,
+        color: '#718096',
+        fontWeight: '500',
+    },
+    // Hero Section
+    heroSection: {
+        paddingHorizontal: 20,
+        paddingVertical: 30,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    heroContent: {
+        flex: 1,
+    },
+    heroGreeting: {
+        fontSize: 14,
+        color: '#718096',
+        fontWeight: '500',
+        marginBottom: 4,
+    },
+    heroTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#1a202c',
+        marginBottom: 8,
+    },
+    adminBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f7fafc',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    adminBadgeText: {
+        color: '#667EEA',
+        fontSize: 12,
+        fontWeight: '600',
+        marginLeft: 6,
+    },
+    // Avatar Styles
+    avatarContainer: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        position: 'relative',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    profileImage: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        borderWidth: 3,
+        borderColor: '#667EEA',
+    },
+    defaultAvatar: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: '#f7fafc',
+        borderWidth: 3,
+        borderColor: '#667EEA',
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    statsIconContainer: {
-        marginBottom: 12,
+    adminIndicator: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#f8fafc',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
     },
-    statsIcon: {
-        fontSize: 32,
+    // Info Card
+    infoCard: {
+        backgroundColor: '#fff',
+        marginHorizontal: 16,
+        borderRadius: 20,
+        padding: 24,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 8,
+    },
+    infoHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    infoTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1a202c',
+        marginLeft: 12,
+    },
+    infoContent: {
+        gap: 16,
+        marginBottom: 20,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    infoLabel: {
+        fontSize: 14,
+        color: '#718096',
+        fontWeight: '500',
+        marginLeft: 12,
+        flex: 1,
+    },
+    infoValue: {
+        fontSize: 14,
+        color: '#1a202c',
+        fontWeight: '600',
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#4CAF50',
+        marginRight: 6,
+    },
+    statusText: {
+        fontSize: 12,
+        color: '#2d7738',
+        fontWeight: '600',
+    },
+    // Edit Profile Button in Info Card
+    editProfileButton: {
+        backgroundColor: '#667EEA',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        shadowColor: '#667EEA',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    editProfileButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 8,
+    },
+    // Stats Section
+    statsSection: {
+        marginTop: 16,
+        paddingHorizontal: 16,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1a202c',
+        marginBottom: 16,
+        marginLeft: 4,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    statsCard: {
+        flex: 1,
+    },
+    statsCardContent: {
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    statsIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     statsTextContainer: {
         alignItems: 'center',
@@ -591,55 +799,50 @@ const styles = StyleSheet.create({
     statsTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#2E7D32',
+        color: '#1a202c',
         textAlign: 'center',
         marginBottom: 4,
     },
     statsSubtitle: {
         fontSize: 12,
-        color: '#52796F',
+        color: '#718096',
         textAlign: 'center',
     },
     // Actions Section
     actionsSection: {
         marginTop: 32,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
     },
     actionButtonContainer: {
         marginBottom: 16,
     },
     actionButton: {
         borderRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
         shadowRadius: 12,
-        elevation: 8,
+        elevation: 6,
     },
-    actionButtonGradient: {
+    actionButtonContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 20,
+        paddingVertical: 18,
         paddingHorizontal: 20,
-        borderRadius: 16,
     },
     actionButtonIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
     },
-    actionButtonIconText: {
-        fontSize: 18,
-    },
     actionButtonText: {
         flex: 1,
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
-        letterSpacing: 0.3,
     },
     actionButtonArrow: {
         width: 24,
@@ -648,11 +851,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    actionButtonArrowText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: 'bold',
     },
     // Footer
     footer: {
@@ -663,12 +861,12 @@ const styles = StyleSheet.create({
     footerText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#2E7D32',
+        color: '#1a202c',
         marginBottom: 4,
     },
     footerSubtext: {
         fontSize: 12,
-        color: '#52796F',
+        color: '#718096',
         opacity: 0.8,
     },
 });

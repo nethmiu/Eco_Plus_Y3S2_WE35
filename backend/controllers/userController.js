@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
-const { sendWelcomeEmail } = require('../utils/email');
+const { sendWelcomeEmail, sendAccountCreationEmail,sendPasswordResetEmail } = require('../utils/email');
+const crypto = require('crypto'); // OTP hash
 const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
@@ -83,6 +84,33 @@ exports.registerUser = async (req, res) => {
         }
         
 
+        createSendToken(newUser, 201, res);
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
+
+exports.Adminregistration = async (req, res) => {
+    try {
+        const { name, email, role, password, householdMembers, address, city } = req.body;
+
+        const newUser = await User.create({
+            name, email, role, password, householdMembers, address, city,
+        });
+
+        
+        try {
+            // Admin විසින් user කෙනෙක්ව නිර්මාණය කළ පසු, තාවකාලික මුරපදය සමඟ ඊමේල් එක යැවීම
+            // මෙහිදී, req.body වෙතින් ලැබෙන hash නොකළ password එක යවනු ලැබේ
+            await sendAccountCreationEmail(newUser.email, newUser.name, password);
+        } catch (emailError) {
+            // ඊමේල් යැවීම අසාර්ථක වුවහොත්, server එකේ console එකේ log කිරීම
+            // නමුත් user ගේ registration එක සාර්ථක ලෙස ඉදිරියට ගෙනයාම
+            console.error('There was an error sending the account creation email:', emailError);
+        }
+        
+        // මෙම function එක මගින් Admin ට, අලුතින් සෑදූ user ගේ token එකක් සහිතව
+        // සාර්ථක ප්‍රතිචාරයක් යවයි.
         createSendToken(newUser, 201, res);
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });

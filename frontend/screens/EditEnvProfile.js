@@ -26,12 +26,31 @@ const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
 const TOKEN_KEY = 'userToken';
 const { width } = Dimensions.get('window');
 
-// ශ්‍රී ලංකාවේ ප්‍රධාන නගර ලැයිස්තුව
+// Sri Lankan cities list
 const srilankanCities = [
     'Colombo', 'Kandy', 'Galle', 'Jaffna', 'Gampaha', 'Kurunegala', 
     'Anuradhapura', 'Trincomalee', 'Batticaloa', 'Matara', 'Negombo', 
     'Ratnapura', 'Badulla', 'Kalutara', 'Dehiwala-Mount Lavinia', 
     'Sri Jayewardenepura Kotte', 'Moratuwa', 'Hambantota', 'Polonnaruwa'
+];
+
+// Areas of expertise for environmentalists
+const expertiseAreas = [
+    'Wildlife Conservation',
+    'Marine Biology',
+    'Forest Management',
+    'Climate Change',
+    'Renewable Energy',
+    'Waste Management',
+    'Water Conservation',
+    'Air Quality Monitoring',
+    'Ecosystem Restoration',
+    'Environmental Policy',
+    'Sustainable Agriculture',
+    'Biodiversity Research',
+    'Environmental Education',
+    'Carbon Footprint Analysis',
+    'Green Technology'
 ];
 
 // Password validation function
@@ -129,8 +148,8 @@ const ValidationItem = ({ isValid, text }) => (
     </View>
 );
 
-// Move InputField component outside the main component to prevent re-creation
-const InputField = ({ icon, label, value, onChangeText, placeholder, keyboardType, secureTextEntry, showPasswordToggle, passwordField, togglePasswordVisibility, returnKeyType, onSubmitEditing, inputRef }) => (
+// Input field component
+const InputField = ({ icon, label, value, onChangeText, placeholder, keyboardType, secureTextEntry, showPasswordToggle, passwordField, togglePasswordVisibility, returnKeyType, onSubmitEditing, inputRef, multiline, numberOfLines }) => (
     <View style={styles.inputGroup}>
         <Text style={styles.label}>
             <Ionicons name={icon} size={16} color="#666" /> {label}
@@ -138,7 +157,11 @@ const InputField = ({ icon, label, value, onChangeText, placeholder, keyboardTyp
         <View style={styles.inputContainer}>
             <TextInput
                 ref={inputRef}
-                style={[styles.input, showPasswordToggle && styles.inputWithIcon]}
+                style={[
+                    styles.input, 
+                    showPasswordToggle && styles.inputWithIcon,
+                    multiline && styles.multilineInput
+                ]}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
@@ -148,7 +171,10 @@ const InputField = ({ icon, label, value, onChangeText, placeholder, keyboardTyp
                 autoCorrect={false}
                 returnKeyType={returnKeyType}
                 onSubmitEditing={onSubmitEditing}
-                blurOnSubmit={false}
+                blurOnSubmit={!multiline}
+                multiline={multiline}
+                numberOfLines={numberOfLines}
+                textAlignVertical={multiline ? 'top' : 'center'}
             />
             {showPasswordToggle && (
                 <TouchableOpacity 
@@ -166,7 +192,7 @@ const InputField = ({ icon, label, value, onChangeText, placeholder, keyboardTyp
     </View>
 );
 
-// Move ActionButton component outside to prevent re-creation
+// Action button component
 const ActionButton = ({ title, onPress, disabled, color, icon, style, loading }) => (
     <TouchableOpacity 
         style={[styles.button, { backgroundColor: color }, disabled && styles.buttonDisabled, style]}
@@ -190,24 +216,20 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
     const [emailError, setEmailError] = useState('');
 
     const handleConfirm = () => {
-        // Reset error
         setEmailError('');
         
-        // Validate email
         if (!confirmationEmail.trim()) {
             setEmailError('Please enter your email address');
             return;
         }
 
-        // Check if emails match (case insensitive)
         if (confirmationEmail.toLowerCase().trim() !== userEmail.toLowerCase().trim()) {
             setEmailError('Email does not match your account email');
             return;
         }
 
-        // If validation passes, proceed with deletion
         onConfirm();
-        setConfirmationEmail(''); // Clear the field after confirmation
+        setConfirmationEmail('');
     };
 
     const handleClose = () => {
@@ -227,9 +249,9 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <Ionicons name="warning" size={48} color="#D9534F" />
-                        <Text style={styles.modalTitle}>Delete Account</Text>
+                        <Text style={styles.modalTitle}>Delete Environmentalist Account</Text>
                         <Text style={styles.modalSubtitle}>
-                            This action cannot be undone. All your data will be permanently deleted.
+                            This action cannot be undone. All your environmental profile data will be permanently deleted.
                         </Text>
                     </View>
 
@@ -246,7 +268,7 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
                             value={confirmationEmail}
                             onChangeText={(text) => {
                                 setConfirmationEmail(text);
-                                setEmailError(''); // Clear error when user types
+                                setEmailError('');
                             }}
                             placeholder="Type your email address"
                             keyboardType="email-address"
@@ -286,7 +308,7 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
     );
 };
 
-export default function ProfileScreen({ route, navigation }) {
+export default function EditEnvProfile({ route, navigation }) {
     const [formData, setFormData] = useState(null);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -302,7 +324,7 @@ export default function ProfileScreen({ route, navigation }) {
     const [passwordMatchError, setPasswordMatchError] = useState('');
     const [samePasswordError, setSamePasswordError] = useState('');
     
-    // Refs for password fields to manage focus
+    // Refs for password fields
     const newPasswordRef = React.useRef();
     const confirmPasswordRef = React.useRef();
 
@@ -318,7 +340,7 @@ export default function ProfileScreen({ route, navigation }) {
         })();
     }, []);
 
-    // Screen එකට මුලින්ම එන විට user දත්ත state එකට ලබා දීම
+    // Initialize form data from route params
     useEffect(() => {
         if (route.params?.user) {
             setFormData({
@@ -326,7 +348,10 @@ export default function ProfileScreen({ route, navigation }) {
                 email: route.params.user.email || '',
                 address: route.params.user.address || '',
                 city: route.params.user.city || srilankanCities[0],
-                householdMembers: route.params.user.householdMembers?.toString() || '',
+                expertise: route.params.user.expertise || expertiseAreas[0],
+                bio: route.params.user.bio || '',
+                yearsOfExperience: route.params.user.yearsOfExperience?.toString() || '',
+                organization: route.params.user.organization || '',
             });
 
             // Set profile image if exists
@@ -336,7 +361,7 @@ export default function ProfileScreen({ route, navigation }) {
         }
     }, [route.params?.user]);
 
-    // Check password match when confirm password changes
+    // Password match validation
     useEffect(() => {
         if (confirmPassword && newPassword) {
             if (newPassword !== confirmPassword) {
@@ -349,7 +374,7 @@ export default function ProfileScreen({ route, navigation }) {
         }
     }, [newPassword, confirmPassword]);
 
-    // Check if new password is same as current password
+    // Same password validation
     useEffect(() => {
         if (currentPassword && newPassword) {
             if (currentPassword === newPassword) {
@@ -362,30 +387,6 @@ export default function ProfileScreen({ route, navigation }) {
         }
     }, [currentPassword, newPassword]);
 
-    // Logout function
-    const handleLogout = useCallback(async () => {
-        Alert.alert(
-            'Confirm Logout',
-            'Are you sure you want to sign out?',
-            [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Sign Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await SecureStore.deleteItemAsync(TOKEN_KEY);
-                        Alert.alert('Logged Out', 'You logged out Successfully.');
-                        navigation.replace('Login');
-                    },
-                },
-            ]
-        );
-    }, [navigation]);
-
-    // Use useCallback to prevent function recreation on every render
     const handleInputChange = React.useCallback((field, value) => {
         setFormData(prevData => ({ ...prevData, [field]: value }));
     }, []);
@@ -463,7 +464,10 @@ export default function ProfileScreen({ route, navigation }) {
             formDataToSend.append('email', formData.email);
             formDataToSend.append('address', formData.address);
             formDataToSend.append('city', formData.city);
-            formDataToSend.append('householdMembers', Number(formData.householdMembers));
+            formDataToSend.append('expertise', formData.expertise);
+            formDataToSend.append('bio', formData.bio);
+            formDataToSend.append('yearsOfExperience', Number(formData.yearsOfExperience) || 0);
+            formDataToSend.append('organization', formData.organization);
 
             // Add photo if selected and it's a new local image
             if (profileImage && profileImage.startsWith('file://')) {
@@ -486,24 +490,23 @@ export default function ProfileScreen({ route, navigation }) {
                 setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${response.data.data.user.photo}`);
             }
 
-            // Show success message with navigation option
             Alert.alert(
                 'Success', 
-                'Your details have been updated successfully!',
+                'Your environmentalist profile has been updated successfully!',
                 [
                     {
                         text: 'Stay Here',
                         style: 'cancel'
                     },
                     {
-                        text: 'Go to Home',
-                        onPress: () => navigation.navigate('Home')
+                        text: 'Go to Dashboard',
+                        onPress: () => navigation.navigate('EnvironmentalistDashboard')
                     }
                 ]
             );
         } catch (error) {
             console.error('Update error:', error);
-            Alert.alert('Update Failed', error.response?.data?.message || 'Could not update details.');
+            Alert.alert('Update Failed', error.response?.data?.message || 'Could not update profile details.');
         } finally {
             setLoading(false);
         }
@@ -562,7 +565,6 @@ export default function ProfileScreen({ route, navigation }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            // Show success message and logout
             Alert.alert(
                 'Password Changed Successfully', 
                 'Your password has been changed successfully. You will be logged out for security reasons.',
@@ -570,12 +572,10 @@ export default function ProfileScreen({ route, navigation }) {
                     {
                         text: 'OK',
                         onPress: async () => {
-                            // Clear password fields
                             setCurrentPassword('');
                             setNewPassword('');
                             setConfirmPassword('');
                             
-                            // Auto logout after password change
                             await SecureStore.deleteItemAsync(TOKEN_KEY);
                             navigation.replace('Login');
                         }
@@ -601,12 +601,11 @@ export default function ProfileScreen({ route, navigation }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            // Token එක ඉවත් කර Login screen එකට යැවීම
             await SecureStore.deleteItemAsync(TOKEN_KEY);
             setDeleteModalVisible(false);
             Alert.alert(
                 'Account Deleted', 
-                'Your account has been successfully deleted.',
+                'Your environmentalist account has been successfully deleted.',
                 [
                     {
                         text: 'OK',
@@ -626,30 +625,27 @@ export default function ProfileScreen({ route, navigation }) {
         setDeleteModalVisible(false);
     };
 
-    // Function to focus on new password field
     const focusNewPassword = () => {
         newPasswordRef.current?.focus();
     };
 
-    // Function to focus on confirm password field
     const focusConfirmPassword = () => {
         confirmPasswordRef.current?.focus();
     };
 
-    // Check if password change form is valid
     const isPasswordFormValid = () => {
         const validations = validatePassword(newPassword);
         const validCount = Object.values(validations).filter(Boolean).length;
         return currentPassword && newPassword && confirmPassword && 
                newPassword === confirmPassword && validCount >= 3 &&
-               currentPassword !== newPassword; // New password must be different from current
+               currentPassword !== newPassword;
     };
 
     if (!formData) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4A90E2" />
-                <Text style={styles.loadingText}>Loading profile...</Text>
+                <ActivityIndicator size="large" color="#4CAF50" />
+                <Text style={styles.loadingText}>Loading environmentalist profile...</Text>
             </View>
         );
     }
@@ -674,7 +670,7 @@ export default function ProfileScreen({ route, navigation }) {
                                 <Image source={{ uri: profileImage }} style={styles.profileImage} />
                             ) : (
                                 <View style={styles.profileIcon}>
-                                    <Ionicons name="person" size={40} color="#4A90E2" />
+                                    <Ionicons name="leaf" size={40} color="#4CAF50" />
                                 </View>
                             )}
                             <View style={styles.cameraIconContainer}>
@@ -682,15 +678,15 @@ export default function ProfileScreen({ route, navigation }) {
                             </View>
                         </TouchableOpacity>
                         <Text style={styles.profileImageText}>Tap to change profile picture</Text>
-                        <Text style={styles.title}>Edit Profile</Text>
-                        <Text style={styles.subtitle}>Update your personal information</Text>
+                        <Text style={styles.title}>Edit Environmental Profile</Text>
+                        <Text style={styles.subtitle}>Update your environmental expertise information</Text>
                     </View>
 
                     {/* Personal Details Card */}
                     <View style={styles.card}>
                         <View style={styles.cardHeader}>
-                            <Ionicons name="person-circle" size={24} color="#4A90E2" />
-                            <Text style={styles.sectionTitle}>Personal Details</Text>
+                            <Ionicons name="leaf-outline" size={24} color="#4CAF50" />
+                            <Text style={styles.sectionTitle}>Environmental Profile</Text>
                         </View>
                         
                         <InputField
@@ -699,7 +695,6 @@ export default function ProfileScreen({ route, navigation }) {
                             value={formData.name}
                             onChangeText={(val) => handleInputChange('name', val)}
                             placeholder="Enter your full name"
-                            togglePasswordVisibility={togglePasswordVisibility}
                         />
                         
                         <InputField
@@ -709,7 +704,6 @@ export default function ProfileScreen({ route, navigation }) {
                             onChangeText={(val) => handleInputChange('email', val)}
                             placeholder="Enter your email address"
                             keyboardType="email-address"
-                            togglePasswordVisibility={togglePasswordVisibility}
                         />
 
                         <InputField
@@ -718,7 +712,6 @@ export default function ProfileScreen({ route, navigation }) {
                             value={formData.address}
                             onChangeText={(val) => handleInputChange('address', val)}
                             placeholder="Enter your address"
-                            togglePasswordVisibility={togglePasswordVisibility}
                         />
 
                         <View style={styles.inputGroup}>
@@ -739,21 +732,56 @@ export default function ProfileScreen({ route, navigation }) {
                             </View>
                         </View>
 
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>
+                                <Ionicons name="school-outline" size={16} color="#666" /> Area of Expertise
+                            </Text>
+                            <View style={styles.pickerContainer}>
+                                <Ionicons name="chevron-down" size={20} color="#666" style={styles.pickerIcon} />
+                                <Picker
+                                    selectedValue={formData.expertise}
+                                    onValueChange={(itemValue) => handleInputChange('expertise', itemValue)}
+                                    style={styles.picker}
+                                >
+                                    {expertiseAreas.map((area, index) => (
+                                        <Picker.Item label={area} value={area} key={index} />
+                                    ))}
+                                </Picker>
+                            </View>
+                        </View>
+
                         <InputField
-                            icon="people-outline"
-                            label="Household Members"
-                            value={formData.householdMembers}
-                            onChangeText={(val) => handleInputChange('householdMembers', val)}
-                            placeholder="Number of household members"
+                            icon="briefcase-outline"
+                            label="Organization/Institution"
+                            value={formData.organization}
+                            onChangeText={(val) => handleInputChange('organization', val)}
+                            placeholder="Your current organization or institution"
+                        />
+
+                        <InputField
+                            icon="time-outline"
+                            label="Years of Experience"
+                            value={formData.yearsOfExperience}
+                            onChangeText={(val) => handleInputChange('yearsOfExperience', val)}
+                            placeholder="Years in environmental field"
                             keyboardType="numeric"
-                            togglePasswordVisibility={togglePasswordVisibility}
+                        />
+
+                        <InputField
+                            icon="document-text-outline"
+                            label="Professional Bio"
+                            value={formData.bio}
+                            onChangeText={(val) => handleInputChange('bio', val)}
+                            placeholder="Brief description of your environmental background and interests"
+                            multiline={true}
+                            numberOfLines={4}
                         />
                         
                         <ActionButton
-                            title="Update Details"
+                            title="Update Environmental Profile"
                             onPress={handleUpdateDetails}
                             disabled={loading}
-                            color="#4A90E2"
+                            color="#4CAF50"
                             icon="checkmark-circle"
                             style={styles.primaryButton}
                             loading={loading}
@@ -763,7 +791,7 @@ export default function ProfileScreen({ route, navigation }) {
                     {/* Password Change Card */}
                     <View style={styles.card}>
                         <View style={styles.cardHeader}>
-                            <Ionicons name="lock-closed" size={24} color="#28A745" />
+                            <Ionicons name="lock-closed" size={24} color="#2196F3" />
                             <Text style={styles.sectionTitle}>Change Password</Text>
                         </View>
                         
@@ -796,10 +824,8 @@ export default function ProfileScreen({ route, navigation }) {
                             onSubmitEditing={focusConfirmPassword}
                         />
                         
-                        {/* Password Strength Indicator */}
                         <PasswordStrength password={newPassword} />
                         
-                        {/* Same Password Error */}
                         {samePasswordError ? (
                             <View style={styles.passwordErrorContainer}>
                                 <Ionicons name="alert-circle" size={16} color="#D9534F" />
@@ -821,7 +847,6 @@ export default function ProfileScreen({ route, navigation }) {
                             returnKeyType="done"
                         />
                         
-                        {/* Password Match Error */}
                         {passwordMatchError ? (
                             <View style={styles.passwordErrorContainer}>
                                 <Ionicons name="alert-circle" size={16} color="#D9534F" />
@@ -829,7 +854,6 @@ export default function ProfileScreen({ route, navigation }) {
                             </View>
                         ) : null}
                         
-                        {/* Password Match Success */}
                         {confirmPassword && newPassword && newPassword === confirmPassword ? (
                             <View style={styles.passwordSuccessContainer}>
                                 <Ionicons name="checkmark-circle" size={16} color="#28A745" />
@@ -841,7 +865,7 @@ export default function ProfileScreen({ route, navigation }) {
                             title="Change Password"
                             onPress={handleChangePassword}
                             disabled={loading || !isPasswordFormValid()}
-                            color="#28A745"
+                            color="#2196F3"
                             icon="shield-checkmark"
                             style={styles.secondaryButton}
                             loading={loading}
@@ -855,10 +879,10 @@ export default function ProfileScreen({ route, navigation }) {
                             <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
                         </View>
                         <Text style={styles.dangerZoneDescription}>
-                            Once you delete your account, there is no going back. Please be certain.
+                            Once you delete your environmentalist account, there is no going back. This will remove all your environmental profile data. Please be certain.
                         </Text>
                         <ActionButton
-                            title="Delete My Profile"
+                            title="Delete Environmentalist Profile"
                             onPress={handleDeleteAccountInitiate}
                             disabled={loading}
                             color="#D9534F"
@@ -881,7 +905,7 @@ export default function ProfileScreen({ route, navigation }) {
     );
 }
 
-// Complete styles
+// Complete styles (adapted for environmentalist theme)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -924,17 +948,17 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         borderWidth: 4,
-        borderColor: '#4A90E2',
+        borderColor: '#4CAF50',
     },
     profileIcon: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#E8F4FD',
+        backgroundColor: '#E8F5E8',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: '#4A90E2',
+        borderColor: '#4CAF50',
     },
     cameraIconContainer: {
         position: 'absolute',
@@ -943,7 +967,7 @@ const styles = StyleSheet.create({
         width: 35,
         height: 35,
         borderRadius: 17.5,
-        backgroundColor: '#4A90E2',
+        backgroundColor: '#4CAF50',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
@@ -1015,6 +1039,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         backgroundColor: '#F8F9FA',
         color: '#2C3E50',
+    },
+    multilineInput: {
+        height: 100,
+        paddingVertical: 15,
     },
     inputWithIcon: {
         paddingRight: 50,

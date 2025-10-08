@@ -227,9 +227,9 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <Ionicons name="warning" size={48} color="#D9534F" />
-                        <Text style={styles.modalTitle}>Delete Account</Text>
+                        <Text style={styles.modalTitle}>Delete Admin Account</Text>
                         <Text style={styles.modalSubtitle}>
-                            This action cannot be undone. All your data will be permanently deleted.
+                            This action cannot be undone. All your admin data will be permanently deleted.
                         </Text>
                     </View>
 
@@ -286,7 +286,7 @@ const EmailConfirmationModal = ({ visible, onClose, onConfirm, loading, userEmai
     );
 };
 
-export default function ProfileScreen({ route, navigation }) {
+export default function EditAdminProfile({ route, navigation }) {
     const [formData, setFormData] = useState(null);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -318,23 +318,23 @@ export default function ProfileScreen({ route, navigation }) {
         })();
     }, []);
 
-    // Screen එකට මුලින්ම එන විට user දත්ත state එකට ලබා දීම
+    // Screen එකට මුලින්ම එන විට admin දත්ත state එකට ලබා දීම
     useEffect(() => {
-        if (route.params?.user) {
+        if (route.params?.admin) {
             setFormData({
-                name: route.params.user.name || '',
-                email: route.params.user.email || '',
-                address: route.params.user.address || '',
-                city: route.params.user.city || srilankanCities[0],
-                householdMembers: route.params.user.householdMembers?.toString() || '',
+                name: route.params.admin.name || '',
+                email: route.params.admin.email || '',
+                address: route.params.admin.address || '',
+                city: route.params.admin.city || srilankanCities[0],
+                householdMembers: route.params.admin.householdMembers?.toString() || '',
             });
 
             // Set profile image if exists
-            if (route.params.user.photo && route.params.user.photo !== 'default.jpg') {
-                setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${route.params.user.photo}`);
+            if (route.params.admin.photo && route.params.admin.photo !== 'default.jpg') {
+                setProfileImage(`http://${config.IP}:${config.PORT}/api/users/uploads/users/${route.params.admin.photo}`);
             }
         }
-    }, [route.params?.user]);
+    }, [route.params?.admin]);
 
     // Check password match when confirm password changes
     useEffect(() => {
@@ -489,21 +489,21 @@ export default function ProfileScreen({ route, navigation }) {
             // Show success message with navigation option
             Alert.alert(
                 'Success', 
-                'Your details have been updated successfully!',
+                'Your admin details have been updated successfully!',
                 [
                     {
                         text: 'Stay Here',
                         style: 'cancel'
                     },
                     {
-                        text: 'Go to Home',
-                        onPress: () => navigation.navigate('Home')
+                        text: 'Go to Dashboard',
+                        onPress: () => navigation.navigate('AdminDashboard')
                     }
                 ]
             );
         } catch (error) {
             console.error('Update error:', error);
-            Alert.alert('Update Failed', error.response?.data?.message || 'Could not update details.');
+            Alert.alert('Update Failed', error.response?.data?.message || 'Could not update admin details.');
         } finally {
             setLoading(false);
         }
@@ -565,7 +565,7 @@ export default function ProfileScreen({ route, navigation }) {
             // Show success message and logout
             Alert.alert(
                 'Password Changed Successfully', 
-                'Your password has been changed successfully. You will be logged out for security reasons.',
+                'Your admin password has been changed successfully. You will be logged out for security reasons.',
                 [
                     {
                         text: 'OK',
@@ -583,7 +583,7 @@ export default function ProfileScreen({ route, navigation }) {
                 ]
             );
         } catch (error) {
-            Alert.alert('Password Change Failed', error.response?.data?.message || 'Could not change password.');
+            Alert.alert('Password Change Failed', error.response?.data?.message || 'Could not change admin password.');
         } finally {
             setLoading(false);
         }
@@ -605,8 +605,8 @@ export default function ProfileScreen({ route, navigation }) {
             await SecureStore.deleteItemAsync(TOKEN_KEY);
             setDeleteModalVisible(false);
             Alert.alert(
-                'Account Deleted', 
-                'Your account has been successfully deleted.',
+                'Admin Account Deleted', 
+                'Your admin account has been successfully deleted.',
                 [
                     {
                         text: 'OK',
@@ -616,7 +616,7 @@ export default function ProfileScreen({ route, navigation }) {
             );
 
         } catch (error) {
-            Alert.alert('Deletion Failed', error.response?.data?.message || 'Could not delete your account.');
+            Alert.alert('Deletion Failed', error.response?.data?.message || 'Could not delete your admin account.');
         } finally {
             setLoading(false);
         }
@@ -648,8 +648,8 @@ export default function ProfileScreen({ route, navigation }) {
     if (!formData) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4A90E2" />
-                <Text style={styles.loadingText}>Loading profile...</Text>
+                <ActivityIndicator size="large" color="#FF6B35" />
+                <Text style={styles.loadingText}>Loading admin profile...</Text>
             </View>
         );
     }
@@ -674,23 +674,23 @@ export default function ProfileScreen({ route, navigation }) {
                                 <Image source={{ uri: profileImage }} style={styles.profileImage} />
                             ) : (
                                 <View style={styles.profileIcon}>
-                                    <Ionicons name="person" size={40} color="#4A90E2" />
+                                    <Ionicons name="shield-checkmark" size={40} color="#FF6B35" />
                                 </View>
                             )}
                             <View style={styles.cameraIconContainer}>
                                 <Ionicons name="camera" size={20} color="#fff" />
                             </View>
                         </TouchableOpacity>
-                        <Text style={styles.profileImageText}>Tap to change profile picture</Text>
-                        <Text style={styles.title}>Edit Profile</Text>
-                        <Text style={styles.subtitle}>Update your personal information</Text>
+                        <Text style={styles.profileImageText}>Tap to change admin profile picture</Text>
+                        <Text style={styles.title}>Edit Admin Profile</Text>
+                        <Text style={styles.subtitle}>Update your administrative information</Text>
                     </View>
 
                     {/* Personal Details Card */}
                     <View style={styles.card}>
                         <View style={styles.cardHeader}>
-                            <Ionicons name="person-circle" size={24} color="#4A90E2" />
-                            <Text style={styles.sectionTitle}>Personal Details</Text>
+                            <Ionicons name="shield-checkmark-outline" size={24} color="#FF6B35" />
+                            <Text style={styles.sectionTitle}>Admin Details</Text>
                         </View>
                         
                         <InputField
@@ -739,21 +739,13 @@ export default function ProfileScreen({ route, navigation }) {
                             </View>
                         </View>
 
-                        <InputField
-                            icon="people-outline"
-                            label="Household Members"
-                            value={formData.householdMembers}
-                            onChangeText={(val) => handleInputChange('householdMembers', val)}
-                            placeholder="Number of household members"
-                            keyboardType="numeric"
-                            togglePasswordVisibility={togglePasswordVisibility}
-                        />
+                        
                         
                         <ActionButton
-                            title="Update Details"
+                            title="Update Admin Details"
                             onPress={handleUpdateDetails}
                             disabled={loading}
-                            color="#4A90E2"
+                            color="#FF6B35"
                             icon="checkmark-circle"
                             style={styles.primaryButton}
                             loading={loading}
@@ -852,13 +844,13 @@ export default function ProfileScreen({ route, navigation }) {
                     <View style={styles.dangerZone}>
                         <View style={styles.dangerZoneHeader}>
                             <Ionicons name="warning" size={24} color="#D9534F" />
-                            <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
+                            <Text style={styles.dangerZoneTitle}>Admin Danger Zone</Text>
                         </View>
                         <Text style={styles.dangerZoneDescription}>
-                            Once you delete your account, there is no going back. Please be certain.
+                            Once you delete your admin account, there is no going back. This will remove all administrative privileges. Please be certain.
                         </Text>
                         <ActionButton
-                            title="Delete My Profile"
+                            title="Delete Admin Profile"
                             onPress={handleDeleteAccountInitiate}
                             disabled={loading}
                             color="#D9534F"
@@ -881,7 +873,7 @@ export default function ProfileScreen({ route, navigation }) {
     );
 }
 
-// Complete styles
+// Complete styles (adapted for admin theme)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -924,17 +916,17 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         borderWidth: 4,
-        borderColor: '#4A90E2',
+        borderColor: '#FF6B35',
     },
     profileIcon: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#E8F4FD',
+        backgroundColor: '#FFF4F0',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 4,
-        borderColor: '#4A90E2',
+        borderColor: '#FF6B35',
     },
     cameraIconContainer: {
         position: 'absolute',
@@ -943,7 +935,7 @@ const styles = StyleSheet.create({
         width: 35,
         height: 35,
         borderRadius: 17.5,
-        backgroundColor: '#4A90E2',
+        backgroundColor: '#FF6B35',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
