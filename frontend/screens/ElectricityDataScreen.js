@@ -32,8 +32,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
         accountNo: ''
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [step, setStep] = useState(1);
-    const [totalSteps] = useState(3);
+    
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -120,31 +119,6 @@ export default function ElectricityDataScreen({ navigation, route }) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
             
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.subtitle}>Setting Up Your Profile</Text>
-                <View style={{ marginTop: 15, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 16, color: '#4A90E2', fontWeight: '600' }}>
-                        Step {step} of {totalSteps}
-                    </Text>
-                    <View style={{ 
-                        flexDirection: 'row', 
-                        marginTop: 10,
-                        width: 200,
-                        height: 6,
-                        backgroundColor: '#E9ECEF',
-                        borderRadius: 3
-                    }}>
-                        <View style={{ 
-                            width: `${(step / totalSteps) * 100}%`, 
-                            height: '100%', 
-                            backgroundColor: '#4A90E2',
-                            borderRadius: 3
-                        }} />
-                    </View>
-                </View>
-            </View>
-
             <ScrollView 
                 style={styles.container}
                 contentContainerStyle={styles.contentContainer}
@@ -321,6 +295,7 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         paddingBottom: 30,
+        paddingTop: 50,
     },
     header: {
         alignItems: 'center',
