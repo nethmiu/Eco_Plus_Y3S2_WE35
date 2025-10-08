@@ -131,7 +131,19 @@ exports.loginUser = async (req, res) => {
             return res.status(401).json({ status: 'fail', message: 'Incorrect email or password' });
         }
 
+       
+        // පරිශීලකයාගේ status එක 'active' දැයි පරීක්ෂා කිරීම
+        if (user.status !== 'active') {
+            return res.status(401).json({ 
+                status: 'fail', 
+                message: 'Your account is inactive. Please contact an administrator.' 
+            });
+        }
+        
+
+        // සියලුම පරීක්ෂා කිරීම් සාර්ථක නම්, token එක යැවීම
         createSendToken(user, 200, res);
+
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'Something went wrong!' });
     }
