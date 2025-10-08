@@ -18,13 +18,33 @@ import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/users`;
 const TOKEN_KEY = 'userToken';
 
+// Safe Text component to prevent errors
+const SafeText = ({ children, style, ...props }) => {
+    if (children === null || children === undefined) {
+        return null;
+    }
+    
+    // Ensure children is a string or number
+    const textContent = typeof children === 'string' || typeof children === 'number' 
+        ? children 
+        : String(children);
+    
+    return (
+        <Text style={style} {...props}>
+            {textContent}
+        </Text>
+    );
+};
+
 export default function EnvironmentalistDashboard({ navigation }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const verifyToken = async () => {
             try {
+                setError(null);
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
                     navigation.replace('Login');
@@ -42,10 +62,25 @@ export default function EnvironmentalistDashboard({ navigation }) {
                     await SecureStore.deleteItemAsync(TOKEN_KEY);
                     navigation.replace('Login');
                 } else {
-                    setUser(response.data.data.user);
+                    // Ensure all user data is properly formatted
+                    const userData = response.data.data.user;
+                    const sanitizedUser = {
+                        ...userData,
+                        name: userData.name || 'Environmentalist',
+                        email: userData.email || '',
+                        city: userData.city || '',
+                        expertise: userData.expertise || '',
+                        organization: userData.organization || '',
+                        bio: userData.bio || '',
+                        yearsOfExperience: userData.yearsOfExperience || '',
+                        photo: userData.photo || ''
+                    };
+                    setUser(sanitizedUser);
                 }
 
             } catch (error) {
+                console.error('Token verification error:', error);
+                setError(error.message);
                 await SecureStore.deleteItemAsync(TOKEN_KEY);
                 navigation.replace('Login');
             } finally {
@@ -86,7 +121,20 @@ export default function EnvironmentalistDashboard({ navigation }) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#4CAF50" />
-                <Text style={styles.loadingText}>Loading dashboard...</Text>
+                <SafeText style={styles.loadingText}>Loading dashboard...</SafeText>
+            </View>
+        );
+    }
+
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Ionicons name="warning-outline" size={50} color="#dc3545" />
+                <SafeText style={styles.errorText}>Error loading dashboard</SafeText>
+                <SafeText style={styles.errorSubtext}>{error}</SafeText>
+                <TouchableOpacity style={styles.retryButton} onPress={() => navigation.replace('Login')}>
+                    <SafeText style={styles.retryButtonText}>Return to Login</SafeText>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -102,6 +150,7 @@ export default function EnvironmentalistDashboard({ navigation }) {
                             <Image 
                                 source={{ uri: `http://${config.IP}:${config.PORT}/api/users/uploads/users/${user.photo}` }} 
                                 style={styles.profileImage} 
+                                onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
                             />
                         ) : (
                             <View style={styles.profileIcon}>
@@ -109,9 +158,8 @@ export default function EnvironmentalistDashboard({ navigation }) {
                             </View>
                         )}
                         <View style={styles.welcomeSection}>
-                            
-                            <Text style={styles.userName}>{user?.name || 'Environmentalist'}</Text>
-                            <Text style={styles.userRole}>Environmental Specialist</Text>
+                            <SafeText style={styles.userName}>{user?.name}</SafeText>
+                            <SafeText style={styles.userRole}>Environmental Specialist</SafeText>
                         </View>
                     </View>
                 </View>
@@ -120,56 +168,56 @@ export default function EnvironmentalistDashboard({ navigation }) {
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Ionicons name="person-circle-outline" size={24} color="#4CAF50" />
-                        <Text style={styles.cardTitle}>Profile Overview</Text>
+                        <SafeText style={styles.cardTitle}>Profile Overview</SafeText>
                     </View>
                     <View style={styles.profileDetails}>
                         <View style={styles.detailRow}>
                             <Ionicons name="mail-outline" size={16} color="#666" />
-                            <Text style={styles.detailText}>{user?.email}</Text>
+                            <SafeText style={styles.detailText}>{user?.email}</SafeText>
                         </View>
-                        {user?.city && (
+                        {user?.city ? (
                             <View style={styles.detailRow}>
                                 <Ionicons name="location-outline" size={16} color="#666" />
-                                <Text style={styles.detailText}>{user.city}</Text>
+                                <SafeText style={styles.detailText}>{user.city}</SafeText>
                             </View>
-                        )}
-                        {user?.expertise && (
+                        ) : null}
+                        {user?.expertise ? (
                             <View style={styles.detailRow}>
                                 <Ionicons name="school-outline" size={16} color="#666" />
-                                <Text style={styles.detailText}>{user.expertise}</Text>
+                                <SafeText style={styles.detailText}>{user.expertise}</SafeText>
                             </View>
-                        )}
-                        {user?.organization && (
+                        ) : null}
+                        {user?.organization ? (
                             <View style={styles.detailRow}>
                                 <Ionicons name="briefcase-outline" size={16} color="#666" />
-                                <Text style={styles.detailText}>{user.organization}</Text>
+                                <SafeText style={styles.detailText}>{user.organization}</SafeText>
                             </View>
-                        )}
-                        {user?.yearsOfExperience && (
+                        ) : null}
+                        {user?.yearsOfExperience ? (
                             <View style={styles.detailRow}>
                                 <Ionicons name="time-outline" size={16} color="#666" />
-                                <Text style={styles.detailText}>{user.yearsOfExperience} years experience</Text>
+                                <SafeText style={styles.detailText}>{user.yearsOfExperience} years experience</SafeText>
                             </View>
-                        )}
+                        ) : null}
                     </View>
                 </View>
 
                  {/* Professional Bio Card */}
-                {user?.bio && (
+                {user?.bio ? (
                     <View style={styles.card}>
                         <View style={styles.cardHeader}>
                             <Ionicons name="document-text-outline" size={24} color="#4CAF50" />
-                            <Text style={styles.cardTitle}>Professional Bio</Text>
+                            <SafeText style={styles.cardTitle}>Professional Bio</SafeText>
                         </View>
-                        <Text style={styles.bioText}>{user.bio}</Text>
+                        <SafeText style={styles.bioText}>{user.bio}</SafeText>
                     </View>
-                )}
+                ) : null}
 
                 {/* Quick Actions Card */}
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
                         <Ionicons name="settings-outline" size={24} color="#4CAF50" />
-                        <Text style={styles.cardTitle}>Quick Actions</Text>
+                        <SafeText style={styles.cardTitle}>Quick Actions</SafeText>
                     </View>
                     
                     {/* Edit Profile Button */}
@@ -179,8 +227,8 @@ export default function EnvironmentalistDashboard({ navigation }) {
                                 <Ionicons name="create-outline" size={24} color="#4CAF50" />
                             </View>
                             <View style={styles.actionTextContainer}>
-                                <Text style={styles.actionTitle}>Edit Profile</Text>
-                                <Text style={styles.actionSubtitle}>Update your environmental profile information</Text>
+                                <SafeText style={styles.actionTitle}>Edit Profile</SafeText>
+                                <SafeText style={styles.actionSubtitle}>Update your environmental profile information</SafeText>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#ccc" />
                         </View>
@@ -193,23 +241,33 @@ export default function EnvironmentalistDashboard({ navigation }) {
                                 <Ionicons name="bar-chart-outline" size={24} color="#4CAF50" />
                             </View>
                             <View style={styles.actionTextContainer}>
-                                <Text style={styles.actionTitle}>Environmental Reports</Text>
-                                <Text style={styles.actionSubtitle}>View and manage your environmental reports</Text>
+                                <SafeText style={styles.actionTitle}>Environmental Reports</SafeText>
+                                <SafeText style={styles.actionSubtitle}>View and manage your environmental reports</SafeText>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#ccc" />
                         </View>
                     </TouchableOpacity>
 
-                    
+                    {/* Another placeholder action */}
+                    <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Coming Soon', 'This feature will be available in future updates.')}>
+                        <View style={styles.actionButtonContent}>
+                            <View style={styles.actionIconContainer}>
+                                <Ionicons name="people-outline" size={24} color="#4CAF50" />
+                            </View>
+                            <View style={styles.actionTextContainer}>
+                                <SafeText style={styles.actionTitle}>Community</SafeText>
+                                <SafeText style={styles.actionSubtitle}>Connect with other environmentalists</SafeText>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
                 </View>
-
-               
 
                 {/* Logout Button */}
                 <View style={styles.card}>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                         <Ionicons name="log-out-outline" size={24} color="#fff" />
-                        <Text style={styles.logoutButtonText}>Sign Out</Text>
+                        <SafeText style={styles.logoutButtonText}>Sign Out</SafeText>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -232,6 +290,37 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 16,
         color: '#666',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 18,
+        color: '#dc3545',
+        fontWeight: 'bold',
+        marginTop: 10,
+        marginBottom: 5,
+    },
+    errorSubtext: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    retryButton: {
+        backgroundColor: '#4CAF50',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    retryButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
     },
     header: {
         backgroundColor: '#fff',
@@ -271,11 +360,6 @@ const styles = StyleSheet.create({
     },
     welcomeSection: {
         flex: 1,
-    },
-    welcomeText: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 5,
     },
     userName: {
         fontSize: 24,
@@ -328,6 +412,12 @@ const styles = StyleSheet.create({
         marginLeft: 12,
         flex: 1,
     },
+    bioText: {
+        fontSize: 16,
+        color: '#495057',
+        lineHeight: 24,
+        fontStyle: 'italic',
+    },
     actionButton: {
         marginBottom: 15,
         borderRadius: 12,
@@ -363,12 +453,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
         lineHeight: 20,
-    },
-    bioText: {
-        fontSize: 16,
-        color: '#495057',
-        lineHeight: 24,
-        fontStyle: 'italic',
     },
     logoutButton: {
         flexDirection: 'row',
