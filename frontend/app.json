@@ -6,12 +6,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to select the city from the map."
-      }
+      },
+      "bundleIdentifier": "com.anonymous.frontend"
     },
     "android": {
-      "adaptiveIcon": {
-        
-      },
+      "adaptiveIcon": {},
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"

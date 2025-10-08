@@ -277,8 +277,15 @@ export default function HomeScreen({ navigation }) {
         );
     }, [navigation]);
 
-    const handleGetStarted = useCallback(() => {
+    const handleConsumptions = useCallback(() => {
         navigation.navigate('ElectricityData');
+    }, [navigation]);
+
+    const handleSustainabilityProfile = useCallback(() => {
+        navigation.navigate('SustainabilityProfile');
+    }, [navigation]);
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('Dashboard'); 
     }, [navigation]);
 
     const navigateToProfile = useCallback(() => {
@@ -287,6 +294,10 @@ export default function HomeScreen({ navigation }) {
 
     const navigateToChallenges = useCallback(() => {
         navigation.navigate('ChallengeList');
+    }, [navigation]);
+
+    const navigateToLeaderboard = useCallback(() => {
+        navigation.navigate('Leaderboard');
     }, [navigation]);
 
     if (loading) {
@@ -356,14 +367,30 @@ export default function HomeScreen({ navigation }) {
                     ]}
                 >
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
-                    
                     <ActionButton
-                        title="Get Started"
-                        onPress={handleGetStarted}
-                        icon="play-circle"
+                        title="Setup Profile"
+                        onPress={handleSustainabilityProfile}
+                        icon="leaf-circle"   
                         iconLibrary="MaterialCommunityIcons"
                         variant="primary"
                         style={styles.getStartedButton}
+                    />
+
+                    <ActionButton
+                        title="Add Consumption Data"
+                        onPress={handleConsumptions}
+                        icon="chart-areaspline"  
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="primary"
+                        style={styles.getStartedButton}
+                    />
+                     <ActionButton
+                        title="View My Eco Dashboard"
+                        onPress={navigateToDashboard} 
+                        icon="view-dashboard"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary" 
+                        style={styles.challengesButton} 
                     />
                     
                     <ActionButton
@@ -373,6 +400,15 @@ export default function HomeScreen({ navigation }) {
                         iconLibrary="MaterialCommunityIcons"
                         variant="secondary"
                         style={styles.challengesButton}
+                    />
+
+                    <ActionButton
+                        title="View Leaderboard"
+                        onPress={navigateToLeaderboard}
+                        icon="chart-bar"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary"
+                        style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
                     />
                     
                     <ActionButton

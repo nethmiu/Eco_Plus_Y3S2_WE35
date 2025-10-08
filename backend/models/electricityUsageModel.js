@@ -5,7 +5,7 @@ const electricityUsageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true // Makes querying by userId faster
+    index: true 
   },
   billingMonth: {
     type: Date,
@@ -14,7 +14,7 @@ const electricityUsageSchema = new mongoose.Schema({
   units: {
     type: Number,
     required: true,
-    min: 0 // Consumption can't be negative
+    min: 0 
   },
   lastReading: {
     type: Number,
