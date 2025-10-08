@@ -131,7 +131,19 @@ exports.loginUser = async (req, res) => {
             return res.status(401).json({ status: 'fail', message: 'Incorrect email or password' });
         }
 
+       
+        // පරිශීලකයාගේ status එක 'active' දැයි පරීක්ෂා කිරීම
+        if (user.status !== 'active') {
+            return res.status(401).json({ 
+                status: 'fail', 
+                message: 'Your account is inactive. Please contact an administrator.' 
+            });
+        }
+        
+
+        // සියලුම පරීක්ෂා කිරීම් සාර්ථක නම්, token එක යැවීම
         createSendToken(user, 200, res);
+
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'Something went wrong!' });
     }
@@ -233,145 +245,4 @@ exports.getMe = async (req, res) => {
         status: 'success',
         data: { user },
     });
-};
-
-// --- Admin Functions ---
-
-// 1. Get all users (for Admin)
-exports.getAllUsers = async (req, res) => {
-    try {
-        const users = await User.find({}); // Get all users from the database
-        res.status(200).json({
-            status: 'success',
-            results: users.length,
-            data: {
-                users
-            }
-        });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: 'Could not fetch users.' });
-    }
-};
-
-// 2. Update any user by ID (for Admin)
-exports.updateUserByAdmin = async (req, res) => {
-    try {
-        // Admin ට password එක වෙනස් කිරීමට ඉඩ නොදීම වඩාත් සුදුසුය.
-        const filteredBody = { ...req.body };
-        delete filteredBody.password;
-
-        const updatedUser = await User.findByIdAndUpdate(req.params.id, filteredBody, {
-            new: true,
-            runValidators: true
-        });
-
-        if (!updatedUser) {
-            return res.status(404).json({ status: 'fail', message: 'No user found with that ID.' });
-        }
-
-        res.status(200).json({
-            status: 'success',
-            data: {
-                user: updatedUser
-            }
-        });
-    } catch (err) {
-        res.status(400).json({ status: 'fail', message: err.message });
-    }
-};
-
-// 3. Delete any user by ID (for Admin)
-exports.deleteUserByAdmin = async (req, res) => {
-    try {
-        const user = await User.findByIdAndDelete(req.params.id);
-
-        if (!user) {
-            return res.status(404).json({ status: 'fail', message: 'No user found with that ID.' });
-        }
-
-        res.status(204).json({
-            status: 'success',
-            data: null
-        });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: 'Error deleting user.' });
-    }
-};
-// 1. Forgot Password - Generates and sends OTP
-exports.forgotPassword = async (req, res) => {
-    try {
-        // 1. Get user based on POSTed email
-        const user = await User.findOne({ email: req.body.email });
-        if (!user) {
-            return res.status(404).json({ status: 'fail', message: 'There is no user with that email address.' });
-        }
-
-        // 2. Generate a random 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // 3. Hash the OTP and save it to the user document
-        user.passwordResetOTP = crypto.createHash('sha256').update(otp).digest('hex');
-        
-        // 4. Set an expiration time (10 minutes from now)
-        user.passwordResetExpires = Date.now() + 10 * 60 * 1000; 
-        await user.save({ validateBeforeSave: false });
-
-        // 5. Send the PLAIN OTP to the user's email
-        await sendPasswordResetEmail(user.email, otp);
-
-        res.status(200).json({
-            status: 'success',
-            message: 'OTP sent to your email address!'
-        });
-
-    } catch (err) {
-        // Clear OTP fields on error
-        const user = await User.findOne({ email: req.body.email });
-        if (user) {
-            user.passwordResetOTP = undefined;
-            user.passwordResetExpires = undefined;
-            await user.save({ validateBeforeSave: false });
-        }
-        console.error('FORGOT PASSWORD ERROR: ', err);
-        res.status(500).json({ status: 'error', message: 'There was an error sending the email. Please try again later.' });
-    }
-};
-
-// 2. Reset Password - Verifies OTP and sets new password
-exports.resetPassword = async (req, res) => {
-    try {
-        const { email, otp, password, confirmPassword } = req.body;
-
-        // 1. Hash the incoming OTP
-        const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
-
-        // 2. Find the user by email, hashed OTP, and check expiration
-        const user = await User.findOne({
-            email,
-            passwordResetOTP: hashedOTP,
-            passwordResetExpires: { $gt: Date.now() } // Check if the token is not expired
-        });
-
-        // 3. If user not found or OTP is invalid/expired
-        if (!user) {
-            return res.status(400).json({ status: 'fail', message: 'OTP is invalid or has expired. Please try again.' });
-        }
-
-        // 4. Check if new password and confirm password match
-        if (password !== confirmPassword) {
-            return res.status(400).json({ status: 'fail', message: 'New password and confirm password do not match.' });
-        }
-
-        // 5. Set the new password, clear the OTP fields, and save the user
-        user.password = password;
-        user.passwordResetOTP = undefined;
-        user.passwordResetExpires = undefined;
-        await user.save();
-
-        // 6. Log the user in by sending a new JWT
-        createSendToken(user, 200, res);
-
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: 'Something went wrong.' });
-    }
 };
