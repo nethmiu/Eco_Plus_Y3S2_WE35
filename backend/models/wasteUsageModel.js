@@ -1,34 +1,39 @@
 const mongoose = require('mongoose');
 
-const waterUsageSchema = new mongoose.Schema({
+const wasteUsageSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
     index: true
   },
-  billingMonth: {
-    type: Date,
-    required: true
-  },
-  units: {
+  plasticBags: {
     type: Number,
     required: true,
     min: 0
   },
-  lastReading: {
+  paperBags: {
     type: Number,
+    required: true,
     min: 0
   },
-  latestReading: {
+  foodWasteBags: {
     type: Number,
+    required: true,
     min: 0
   },
-  accountNo: String
+  collectionDate: {
+    type: Date,
+    required: true
+  },
+  // These can be calculated from collectionDate, so they are optional
+  collectionWeek: Number, 
+  collectionMonth: Number
 }, {
-  timestamps: true
+  timestamps: true  
 });
 
-waterUsageSchema.index({ userId: 1, billingMonth: 1 }, { unique: true });
+// Index for fetching a user's waste entries quickly
+wasteUsageSchema.index({ userId: 1, collectionDate: -1 });
 
-module.exports = mongoose.model('WaterUsage', waterUsageSchema);
+module.exports = mongoose.model('WasteUsage', wasteUsageSchema);
