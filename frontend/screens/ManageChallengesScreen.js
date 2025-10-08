@@ -1,13 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, Modal, TextInput, Button, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    FlatList, 
+    ActivityIndicator, 
+    Alert, 
+    TouchableOpacity, 
+    Modal, 
+    TextInput, 
+    ScrollView, 
+    SafeAreaView, 
+    StatusBar,
+    KeyboardAvoidingView,
+    Platform 
+} from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
+
+
+// --- FIX: Move InputGroup outside the main component and use React.memo ---
+// This prevents the TextInput from losing focus due to re-renders.
+const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
+    <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>
+            <Ionicons name={icon} size={14} color="#6366f1" /> {placeholder}
+        </Text>
+        <TextInput
+            style={[styles.input, isMultiline && styles.inputMultiline]}
+            placeholder={placeholder}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            multiline={isMultiline}
+            numberOfLines={isMultiline ? 4 : 1}
+            textAlignVertical={isMultiline ? 'top' : 'center'}
+            placeholderTextColor="#9ca3af"
+        />
+    </View>
+));
+// --- END FIX ---
+
 
 export default function ManageChallengesScreen({ navigation }) {
     const [challenges, setChallenges] = useState([]);
@@ -22,10 +61,12 @@ export default function ManageChallengesScreen({ navigation }) {
     const [endDate, setEndDate] = useState(new Date());
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
     const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        fetchChallenges();
-    }, []);
+        const unsubscribe = navigation.addListener('focus', fetchChallenges);
+        return unsubscribe;
+    }, [navigation]);
 
     const fetchChallenges = async () => {
         try {
@@ -54,18 +95,27 @@ export default function ManageChallengesScreen({ navigation }) {
     };
 
     const handleUpdateChallenge = async () => {
-        if (!title || !description || !goal || !unit || !startDate || !endDate) {
+        if (!title.trim() || !description.trim() || !goal || !unit.trim() || !startDate || !endDate) {
             Alert.alert('Error', 'Please fill all fields.');
             return;
         }
+        if (isNaN(Number(goal)) || Number(goal) <= 0) {
+            Alert.alert('Error', 'Goal must be a positive number.');
+            return;
+        }
+        if (endDate <= startDate) {
+            Alert.alert('Error', 'End Date must be after Start Date.');
+            return;
+        }
 
+        setIsUpdating(true);
         try {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
             await axios.patch(`${API_URL}/${currentChallenge._id}`, {
-                title,
-                description,
+                title: title.trim(),
+                description: description.trim(),
                 goal: Number(goal),
-                unit,
+                unit: unit.trim(),
                 startDate,
                 endDate,
             }, {
@@ -73,16 +123,18 @@ export default function ManageChallengesScreen({ navigation }) {
             });
             Alert.alert('Success', 'Challenge updated successfully!');
             setModalVisible(false);
-            fetchChallenges(); // Fetch updated list
+            fetchChallenges(); 
         } catch (error) {
-            Alert.alert('Error', error.response?.data?.message || 'Failed to update challenge.');
+            Alert.alert('Update Failed', error.response?.data?.message || 'Failed to update challenge.');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
-    const handleDeleteChallenge = (id) => {
+    const handleDeleteChallenge = (id, title) => {
         Alert.alert(
             "Confirm Delete",
-            "Are you sure you want to delete this challenge?",
+            `Are you sure you want to permanently delete the challenge "${title}"?`,
             [
                 { text: "Cancel", style: "cancel" },
                 { text: "Delete", onPress: () => confirmDelete(id), style: "destructive" }
@@ -98,55 +150,64 @@ export default function ManageChallengesScreen({ navigation }) {
                 headers: { Authorization: `Bearer ${token}` },
             });
             Alert.alert('Success', 'Challenge deleted successfully!');
-            fetchChallenges(); // Fetch updated list
+            fetchChallenges(); 
         } catch (error) {
-            Alert.alert('Error', error.response?.data?.message || 'Failed to delete challenge.');
+            Alert.alert('Deletion Failed', error.response?.data?.message || 'Failed to delete challenge.');
         }
     };
 
-    const showDatePicker = () => {
-        setDatePickerVisible(true);
-    };
-
-    const hideDatePicker = () => {
-        setDatePickerVisible(false);
-    };
-
+    const showDatePicker = () => setDatePickerVisible(true);
+    const hideDatePicker = () => setDatePickerVisible(false);
     const handleConfirmStartDate = (date) => {
         setStartDate(date);
         hideDatePicker();
     };
 
-    const showEndDatePicker = () => {
-        setEndDatePickerVisible(true);
-    };
-
-    const hideEndDatePicker = () => {
-        setEndDatePickerVisible(false);
-    };
-
+    const showEndDatePicker = () => setEndDatePickerVisible(true);
+    const hideEndDatePicker = () => setEndDatePickerVisible(false);
     const handleConfirmEndDate = (date) => {
         setEndDate(date);
         hideEndDatePicker();
     };
 
+    // Use useCallback for setter functions passed to InputGroup (Crucial for keyboard fix in modal)
+    const handleSetTitle = useCallback(value => setTitle(value), []);
+    const handleSetDescription = useCallback(value => setDescription(value), []);
+    const handleSetGoal = useCallback(value => setGoal(value), []);
+    const handleSetUnit = useCallback(value => setUnit(value), []);
+
 
     if (loading) {
-        return <ActivityIndicator size="large" style={styles.loadingContainer} />;
+        return <ActivityIndicator size="large" color="#6366f1" style={styles.loadingContainer} />;
     }
 
     const renderChallengeItem = ({ item }) => (
         <View style={styles.challengeCard}>
-            <Text style={styles.challengeTitle}>{item.title}</Text>
-            <Text style={styles.challengeDescription}>{item.description}</Text>
-            <Text style={styles.challengeDetail}>Goal: {item.goal} {item.unit}</Text>
-            <Text style={styles.challengeDetail}>Start Date: {new Date(item.startDate).toLocaleDateString()}</Text>
-            <Text style={styles.challengeDetail}>End Date: {new Date(item.endDate).toLocaleDateString()}</Text>
+            <View style={styles.cardHeaderRow}>
+                <MaterialCommunityIcons name="trophy-variant-outline" size={24} color="#6366f1" />
+                <Text style={styles.challengeTitle}>{item.title}</Text>
+                <View style={styles.statusPill}>
+                    <Text style={styles.statusText}>{new Date(item.endDate) > new Date() ? 'Active' : 'Expired'}</Text>
+                </View>
+            </View>
+            <Text style={styles.challengeDescription} numberOfLines={2}>{item.description}</Text>
+            
+            <View style={styles.detailRow}>
+                <Ionicons name="stats-chart-outline" size={14} color="#374151" />
+                <Text style={styles.challengeDetailText}>Goal: <Text style={styles.goalValue}>{item.goal} {item.unit}</Text></Text>
+            </View>
+            <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={14} color="#374151" />
+                <Text style={styles.challengeDetailText}>Ends: {new Date(item.endDate).toLocaleDateString()}</Text>
+            </View>
+
             <View style={styles.actionButtons}>
                 <TouchableOpacity onPress={() => handleEditPress(item)} style={[styles.button, styles.editButton]}>
+                    <Ionicons name="create-outline" size={18} color="#ffffff" />
                     <Text style={styles.buttonText}>Edit</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteChallenge(item._id)} style={[styles.button, styles.deleteButton]}>
+                <TouchableOpacity onPress={() => handleDeleteChallenge(item._id, item.title)} style={[styles.button, styles.deleteButton]}>
+                    <Ionicons name="trash-outline" size={18} color="#ffffff" />
                     <Text style={styles.buttonText}>Delete</Text>
                 </TouchableOpacity>
             </View>
@@ -154,35 +215,64 @@ export default function ManageChallengesScreen({ navigation }) {
     );
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" />
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <FontAwesome name="arrow-left" size={24} color="#000" />
+                <Ionicons name="arrow-back" size={24} color="#1a202c" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Manage Challenges</Text>
+            
             <FlatList
                 data={challenges}
                 keyExtractor={(item) => item._id}
                 renderItem={renderChallengeItem}
                 contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                        <MaterialCommunityIcons name="clipboard-text-off-outline" size={60} color="#d1d5db" />
+                        <Text style={styles.emptyStateText}>No Challenges Created</Text>
+                        <Text style={styles.emptyStateSubtext}>Use the "Add Challenge" screen to publish new challenges.</Text>
+                    </View>
+                }
             />
 
+            {/* Edit Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                    style={styles.modalOverlay}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
                     <View style={styles.modalContent}>
-                        <ScrollView>
-                            <Text style={styles.modalTitle}>Edit Challenge</Text>
-                            <TextInput style={styles.input} placeholder="Title" value={title} onChangeText={setTitle} />
-                            <TextInput style={styles.input} placeholder="Description" value={description} onChangeText={setDescription} multiline />
-                            <TextInput style={styles.input} placeholder="Goal" value={goal} onChangeText={setGoal} keyboardType="numeric" />
-                            <TextInput style={styles.input} placeholder="Unit" value={unit} onChangeText={setUnit} />
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={styles.modalTitle}>Edit Challenge: {currentChallenge?.title}</Text>
                             
-                            <Text style={styles.dateLabel}>Start Date: {startDate.toLocaleDateString()}</Text>
-                            <Button title="Select Start Date" onPress={showDatePicker} />
+                            {/* FIX: Using memoized InputGroup and handlers */}
+                            <InputGroup icon="create-outline" placeholder="Title" value={title} onChangeText={handleSetTitle} />
+                            <InputGroup icon="document-text-outline" placeholder="Description" value={description} onChangeText={handleSetDescription} isMultiline={true} />
+                            <InputGroup icon="stats-chart-outline" placeholder="Goal Value" value={goal} onChangeText={handleSetGoal} keyboardType="numeric" />
+                            <InputGroup icon="cube-outline" placeholder="Unit (e.g., kWh)" value={unit} onChangeText={handleSetUnit} />
+                            {/* END FIX */}
+
+                            <View style={styles.datePickerContainer}>
+                                <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color="#6366f1" /> Start Date: {startDate.toLocaleDateString()}</Text>
+                                <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
+                                    <Text style={styles.dateButtonText}>Select Start Date</Text>
+                                    <Ionicons name="chevron-down" size={18} color="#6366f1" />
+                                </TouchableOpacity>
+                                
+                                <Text style={styles.inputLabel}><Ionicons name="calendar-sharp" size={14} color="#6366f1" /> End Date: {endDate.toLocaleDateString()}</Text>
+                                <TouchableOpacity style={styles.dateButton} onPress={showEndDatePicker}>
+                                    <Text style={styles.dateButtonText}>Select End Date</Text>
+                                    <Ionicons name="chevron-down" size={18} color="#6366f1" />
+                                </TouchableOpacity>
+                            </View>
+
                             <DateTimePickerModal
                                 isVisible={isDatePickerVisible}
                                 mode="date"
@@ -190,53 +280,106 @@ export default function ManageChallengesScreen({ navigation }) {
                                 onCancel={hideDatePicker}
                                 date={startDate}
                             />
-
-                            <Text style={styles.dateLabel}>End Date: {endDate.toLocaleDateString()}</Text>
-                            <Button title="Select End Date" onPress={showEndDatePicker} />
                             <DateTimePickerModal
                                 isVisible={isEndDatePickerVisible}
                                 mode="date"
                                 onConfirm={handleConfirmEndDate}
                                 onCancel={hideEndDatePicker}
                                 date={endDate}
+                                minimumDate={startDate}
                             />
 
                             <View style={styles.modalButtons}>
-                                <View style={styles.buttonContainer}>
-                                  <Button title="Update" onPress={handleUpdateChallenge} color="#28a745" />
-                                </View>
-                                <View style={styles.buttonContainer}>
-                                  <Button title="Cancel" onPress={() => setModalVisible(false)} color="#6c757d" />
-                                </View>
+                                <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setModalVisible(false)}>
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.updateModalButton, isUpdating && styles.submitButtonDisabled]} 
+                                    onPress={handleUpdateChallenge}
+                                    disabled={isUpdating}
+                                >
+                                    {isUpdating ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.updateButtonText}>Update Challenge</Text>
+                                    )}
+                                </TouchableOpacity>
                             </View>
                         </ScrollView>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: '#f8f9fa' },
+    safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10 },
-    headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#212529', marginBottom: 25, textAlign: 'center' },
-    listContent: { paddingBottom: 20 },
-    challengeCard: { backgroundColor: '#ffffff', borderRadius: 10, padding: 15, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
-    challengeTitle: { fontSize: 20, fontWeight: 'bold', color: '#007bff', marginBottom: 8 },
-    challengeDescription: { fontSize: 16, color: '#495057', marginBottom: 5 },
-    challengeDetail: { fontSize: 14, color: '#6c757d', marginBottom: 3 },
-    actionButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
-    button: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 5, marginLeft: 10 },
-    editButton: { backgroundColor: '#ffc107' },
-    deleteButton: { backgroundColor: '#dc3545' },
-    buttonText: { color: '#fff', fontWeight: 'bold' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
-    modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 10, width: '90%', maxHeight: '80%' },
-    modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-    input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 12, paddingHorizontal: 10, borderRadius: 5 },
-    dateLabel: { marginTop: 15, marginBottom: 5, fontSize: 16 },
-    modalButtons: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-    buttonContainer: { flex: 1, marginHorizontal: 5 }
+    // NOTE: This backButton/headerTitle styling is overridden in the return block for the full list view.
+    backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10, padding: 5 },
+    headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#1a202c', marginBottom: 25, textAlign: 'center', marginTop: 70 },
+    listContent: { paddingHorizontal: 16, paddingBottom: 20 },
+    emptyState: { alignItems: 'center', paddingVertical: 50, marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 16, marginTop: 10 },
+    emptyStateText: { fontSize: 18, fontWeight: '600', color: '#6b7280', marginTop: 15, marginBottom: 8 },
+    emptyStateSubtext: { fontSize: 14, color: '#9ca3af', textAlign: 'center' },
+
+    // Card Styles
+    challengeCard: { 
+        backgroundColor: '#ffffff', 
+        borderRadius: 16, 
+        padding: 20, 
+        marginBottom: 15, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 4 }, 
+        shadowOpacity: 0.1, 
+        shadowRadius: 8, 
+        elevation: 5,
+        borderLeftWidth: 6,
+        borderLeftColor: '#6366f1',
+    },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    challengeTitle: { fontSize: 18, fontWeight: '700', color: '#2c3e50', marginLeft: 10, flex: 1 },
+    statusPill: {
+        backgroundColor: '#eef2ff',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+    },
+    statusText: { fontSize: 12, fontWeight: '600', color: '#6366f1' },
+    challengeDescription: { fontSize: 14, color: '#495057', marginBottom: 15, lineHeight: 20 },
+    detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+    challengeDetailText: { fontSize: 14, color: '#374151', marginLeft: 8 },
+    goalValue: { fontWeight: '700', color: '#4CAF50' },
+    actionButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, gap: 10 },
+    button: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+    editButton: { backgroundColor: '#FF9800' },
+    deleteButton: { backgroundColor: '#D9534F' },
+    buttonText: { color: '#fff', fontWeight: '600', marginLeft: 5 },
+
+    // Modal Styles
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    modalContent: { backgroundColor: '#fff', padding: 25, borderRadius: 20, width: '100%', maxHeight: '90%' },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginBottom: 25, textAlign: 'center' },
+    
+    inputGroup: { marginBottom: 15 },
+    inputLabel: { fontSize: 14, fontWeight: '600', color: '#495057', marginBottom: 8 },
+    input: { height: 50, borderColor: '#E9ECEF', borderWidth: 2, paddingHorizontal: 15, borderRadius: 12, fontSize: 16, backgroundColor: '#F8F9FA', color: '#2C3E50' },
+    inputMultiline: { height: 100, paddingTop: 15 },
+
+    datePickerContainer: { marginBottom: 20 },
+    dateButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 50, borderColor: '#E9ECEF', borderWidth: 2, paddingHorizontal: 15, borderRadius: 12, marginBottom: 15, backgroundColor: '#F8F9FA' },
+    dateButtonText: { fontSize: 16, color: '#2C3E50' },
+
+    modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 10 },
+    modalButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+    cancelModalButton: { backgroundColor: '#9ca3af' },
+    updateModalButton: { backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 5 },
+    cancelButtonText: { color: '#fff', fontWeight: '700' },
+    updateButtonText: { color: '#fff', fontWeight: '700' },
+    submitButtonDisabled: { opacity: 0.6 },
 });

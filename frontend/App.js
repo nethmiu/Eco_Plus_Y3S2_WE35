@@ -23,6 +23,7 @@ import CameraScreen from './screens/CameraScreen';
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
 import ManageChallengesScreen from './screens/ManageChallengesScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
 
 import AdminDashboard from './screens/AdminDashboard';
 import AdminRegistrationScreen from './screens/AdminRegistrationScreen';
@@ -54,6 +55,7 @@ export default function App() {
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
+        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
         <Stack.Screen name="AdminRegistration" component={AdminRegistrationScreen} />
         <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />

@@ -296,6 +296,10 @@ export default function HomeScreen({ navigation }) {
         navigation.navigate('ChallengeList');
     }, [navigation]);
 
+    const navigateToLeaderboard = useCallback(() => {
+        navigation.navigate('Leaderboard');
+    }, [navigation]);
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -396,6 +400,15 @@ export default function HomeScreen({ navigation }) {
                         iconLibrary="MaterialCommunityIcons"
                         variant="secondary"
                         style={styles.challengesButton}
+                    />
+
+                    <ActionButton
+                        title="View Leaderboard"
+                        onPress={navigateToLeaderboard}
+                        icon="chart-bar"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary"
+                        style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
                     />
                     
                     <ActionButton
