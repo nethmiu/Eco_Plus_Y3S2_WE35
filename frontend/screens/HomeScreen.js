@@ -51,7 +51,29 @@ export default function HomeScreen({ navigation }) {
 
     const handleGetStarted = () => {
         navigation.navigate('ElectricityData');
+<<<<<<< Updated upstream
     };
+=======
+    }, [navigation]);
+
+    const handleSustainabilityProfile = useCallback(() => {
+        navigation.navigate('SustainabilityProfile');
+    }, [navigation]);
+    
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('DashboardScreen'); 
+    }, [navigation]);
+
+    const navigateToProfile = useCallback(() => {
+        navigation.navigate('Profile', { user: user });
+    }, [navigation, user]);
+
+    // The navigateToChallenges function is removed
+
+    const navigateToLeaderboard = useCallback(() => {
+        navigation.navigate('Leaderboard');
+    }, [navigation]);
+>>>>>>> Stashed changes
 
     if (loading) {
         return <ActivityIndicator size="large" style={styles.container} />;
@@ -72,6 +94,7 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.getStartedText}>Get Started</Text>
             </TouchableOpacity>
 
+<<<<<<< Updated upstream
             
             {/* View Challenges බොත්තම මෙහි එකතු කර ඇත */}
             <View style={styles.buttonContainer}>
@@ -81,6 +104,70 @@ export default function HomeScreen({ navigation }) {
                 <Button title="Logout" onPress={handleLogout} color="#dc3545" />
             </View>
         </View>
+=======
+                {/* Stats Card */}
+                <Animated.View 
+                    style={[
+                        { opacity: fadeAnim },
+                        { transform: [{ translateY: slideAnim }] }
+                    ]}
+                >
+                    <StatsCard />
+                </Animated.View>
+
+                {/* Quick Actions */}
+                <Animated.View 
+                    style={[
+                        styles.actionsSection,
+                        { 
+                            opacity: fadeAnim,
+                            transform: [{ translateY: slideAnim }]
+                        }
+                    ]}
+                >
+                    <Text style={styles.sectionTitle}>Quick Actions</Text>
+                
+
+                    <ActionButton
+                        title="Add Consumption Data"
+                        onPress={handleConsumptions}
+                        icon="chart-areaspline"  
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="primary"
+                        style={styles.getStartedButton}
+                    />
+                     <ActionButton
+                        title="View My Eco Dashboard"
+                        onPress={navigateToDashboard} 
+                        icon="view-dashboard"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary" 
+                        style={styles.challengesButton} 
+                    />
+                    
+                    {/* The "View Challenges" button is removed here. */}
+
+                    <ActionButton
+                        title="View Leaderboard"
+                        onPress={navigateToLeaderboard}
+                        icon="chart-bar"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary"
+                        style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
+                    />
+                    
+                    <ActionButton
+                        title="Sing out"
+                        onPress={handleLogout}
+                        icon="logout"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="danger"
+                        style={styles.logoutButton}
+                    />
+                </Animated.View>
+            </ScrollView>
+        </SafeAreaView>
+>>>>>>> Stashed changes
     );
 }
 

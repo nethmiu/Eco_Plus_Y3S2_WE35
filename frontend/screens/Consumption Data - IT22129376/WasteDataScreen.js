@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+<<<<<<< Updated upstream:frontend/screens/WasteDataScreen.js
 import config from '../config';
+=======
+import DateTimePicker from '@react-native-community/datetimepicker';
+import config from '../../config';
+>>>>>>> Stashed changes:frontend/screens/Consumption Data - IT22129376/WasteDataScreen.js
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
@@ -73,6 +78,13 @@ export default function WasteDataScreen({ navigation }) {
         });
     };
 
+<<<<<<< Updated upstream:frontend/screens/WasteDataScreen.js
+=======
+    const handleComplete = () => {
+        navigation.navigate('ConsumptionScreen');
+    };
+
+>>>>>>> Stashed changes:frontend/screens/Consumption Data - IT22129376/WasteDataScreen.js
     return (
         <ScrollView style={styles.container}>
             <Text style={styles.title}>Add Waste Data ♻️</Text>

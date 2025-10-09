@@ -3,13 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert,
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-import config from '../config';
+import config from '../../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
-export default function ElectricityDataScreen({ navigation }) {
+export default function WaterDataScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         billingMonth: new Date(),
@@ -48,11 +47,11 @@ export default function ElectricityDataScreen({ navigation }) {
                 accountNo: formData.accountNo || undefined
             };
 
-            const response = await axios.post(`${API_URL}/data/electricity`, payload, {
+            await axios.post(`${API_URL}/data/water`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            Alert.alert('Success', 'Electricity data saved successfully!');
+            Alert.alert('Success', 'Water data saved successfully!');
             setFormData({
                 billingMonth: new Date(),
                 units: '',
@@ -63,7 +62,7 @@ export default function ElectricityDataScreen({ navigation }) {
             
         } catch (error) {
             console.error('Error saving data:', error.response?.data || error.message);
-            Alert.alert('Error', 'Failed to save electricity data');
+            Alert.alert('Error', 'Failed to save water data');
         } finally {
             setLoading(false);
         }
@@ -78,7 +77,7 @@ export default function ElectricityDataScreen({ navigation }) {
 
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.title}>Add Electricity Usage ⚡</Text>
+            <Text style={styles.title}>Add Water Usage 💧</Text>
             
             <View style={styles.formContainer}>
                 <Text style={styles.label}>Billing Month *</Text>
@@ -98,10 +97,10 @@ export default function ElectricityDataScreen({ navigation }) {
                     />
                 )}
 
-                <Text style={styles.label}>Units Consumed (kWh) *</Text>
+                <Text style={styles.label}>Units Consumed (m³) *</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="e.g., 169"
+                    placeholder="e.g., 28"
                     keyboardType="numeric"
                     value={formData.units}
                     onChangeText={(value) => handleInputChange('units', value)}
@@ -110,7 +109,7 @@ export default function ElectricityDataScreen({ navigation }) {
                 <Text style={styles.label}>Last Meter Reading (Optional)</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="e.g., 14772"
+                    placeholder="e.g., 703"
                     keyboardType="numeric"
                     value={formData.lastReading}
                     onChangeText={(value) => handleInputChange('lastReading', value)}
@@ -119,7 +118,7 @@ export default function ElectricityDataScreen({ navigation }) {
                 <Text style={styles.label}>Latest Meter Reading (Optional)</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="e.g., 14941"
+                    placeholder="e.g., 731"
                     keyboardType="numeric"
                     value={formData.latestReading}
                     onChangeText={(value) => handleInputChange('latestReading', value)}
@@ -128,7 +127,7 @@ export default function ElectricityDataScreen({ navigation }) {
                 <Text style={styles.label}>Account Number (Optional)</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="e.g., 2004401400"
+                    placeholder="e.g., 23/13/034/260/10"
                     value={formData.accountNo}
                     onChangeText={(value) => handleInputChange('accountNo', value)}
                 />
@@ -142,13 +141,13 @@ export default function ElectricityDataScreen({ navigation }) {
                 {loading ? (
                     <ActivityIndicator color="white" />
                 ) : (
-                    <Text style={styles.submitButtonText}>Save Electricity Data</Text>
+                    <Text style={styles.submitButtonText}>Save Water Data</Text>
                 )}
             </TouchableOpacity>
 
             <TouchableOpacity 
                 style={styles.historyButton}
-                onPress={() => navigation.navigate('WaterData')}
+                onPress={() => navigation.navigate('WasteData')}
             >
                 <Text style={styles.historyButtonText}>Next</Text>
             </TouchableOpacity>
@@ -156,11 +155,13 @@ export default function ElectricityDataScreen({ navigation }) {
     );
 }
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f5f5f5',
-        padding: 20
+        padding: 20,
+
     },
     title: {
         fontSize: 24,
