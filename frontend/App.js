@@ -165,7 +165,8 @@ export default function App() {
         <Stack.Screen name="EditEnvProfile" component={EditEnvProfile} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
         <Stack.Screen name="MapScreen" component={MapScreen} />
-        
+
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
         {/* Data Entry Screens (also accessible from tabs) */}
         <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} options={{ title: 'Add Electricity Data' }} />
         <Stack.Screen name="WaterData" component={WaterDataScreen} options={{ title: 'Add Water Data' }} />
