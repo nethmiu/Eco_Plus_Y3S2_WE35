@@ -1,27 +1,15 @@
-import React, { useState, useEffect } from 'react'; 
-import { 
-    View, 
-    Text, 
-    TextInput, 
-    TouchableOpacity, 
-    StyleSheet, 
-    ScrollView, 
-    Alert, 
-    ActivityIndicator,
-    SafeAreaView,
-    StatusBar
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-import config from '../config';
+import config from '../../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
 
-export default function ElectricityDataScreen({ navigation, route }) {
+export default function WaterDataScreen({ navigation, route }) {
     const [loading, setLoading] = useState(false);
     const [ocrLoading, setOcrLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -33,7 +21,6 @@ export default function ElectricityDataScreen({ navigation, route }) {
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
     
-
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -46,7 +33,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
     };
 
     const handleOcrScan = () => {
-        navigation.navigate('CameraScreen', { formType: 'electricity' });
+        navigation.navigate('CameraScreen', { formType: 'water' });
     };
 
     // Handle OCR data when returning from camera
@@ -83,11 +70,11 @@ export default function ElectricityDataScreen({ navigation, route }) {
                 accountNo: formData.accountNo || undefined
             };
 
-            const response = await axios.post(`${API_URL}/data/electricity`, payload, {
+            await axios.post(`${API_URL}/data/water`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            Alert.alert('Success', 'Electricity data saved successfully!');
+            Alert.alert('Success', 'Water data saved successfully!');
             setFormData({
                 billingMonth: new Date(),
                 units: '',
@@ -98,7 +85,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
             
         } catch (error) {
             console.error('Error saving data:', error.response?.data || error.message);
-            Alert.alert('Error', 'Failed to save electricity data');
+            Alert.alert('Error', 'Failed to save water data');
         } finally {
             setLoading(false);
         }
@@ -112,12 +99,14 @@ export default function ElectricityDataScreen({ navigation, route }) {
     };
 
     const handleNext = () => {
-        navigation.navigate('WaterData');
+        navigation.navigate('WasteData');
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+            
+            {/* Header */}
             
             <ScrollView 
                 style={styles.container}
@@ -126,8 +115,8 @@ export default function ElectricityDataScreen({ navigation, route }) {
             >
                 <View style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <Ionicons name="flash-outline" size={24} color="#4A90E2" />
-                        <Text style={styles.sectionTitle}>Electricity Usage</Text>
+                        <Ionicons name="water-outline" size={24} color="#4A90E2" />
+                        <Text style={styles.sectionTitle}>Water Usage</Text>
                         <TouchableOpacity 
                             style={[
                                 styles.cameraButton,
@@ -145,7 +134,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
                     </View>
 
                     <Text style={styles.ocrHint}>
-                        Tap the camera icon to scan your electricity bill automatically
+                        Tap the camera icon to scan your water bill automatically
                     </Text>
 
                     {/* Billing Month - Manual selection only */}
@@ -172,17 +161,17 @@ export default function ElectricityDataScreen({ navigation, route }) {
 
                     {/* Units Consumed */}
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Units Consumed (kWh) *</Text>
+                        <Text style={styles.label}>Units Consumed (m³) *</Text>
                         <View style={styles.pickerContainer}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="e.g., 169"
+                                placeholder="e.g., 28"
                                 placeholderTextColor="#999"
                                 keyboardType="numeric"
                                 value={formData.units}
                                 onChangeText={(value) => handleInputChange('units', value)}
                             />
-                            <Text style={styles.unitText}>kWh</Text>
+                            <Text style={styles.unitText}>m³</Text>
                         </View>
                     </View>
 
@@ -192,7 +181,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
                         <View style={styles.pickerContainer}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="e.g., 14772"
+                                placeholder="e.g., 703"
                                 placeholderTextColor="#999"
                                 keyboardType="numeric"
                                 value={formData.lastReading}
@@ -207,7 +196,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
                         <View style={styles.pickerContainer}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="e.g., 14941"
+                                placeholder="e.g., 731"
                                 placeholderTextColor="#999"
                                 keyboardType="numeric"
                                 value={formData.latestReading}
@@ -222,7 +211,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
                         <View style={styles.pickerContainer}>
                             <TextInput
                                 style={styles.input}
-                                placeholder="e.g., 2004401400"
+                                placeholder="e.g., 23/13/034/260/10"
                                 placeholderTextColor="#999"
                                 value={formData.accountNo}
                                 onChangeText={(value) => handleInputChange('accountNo', value)}

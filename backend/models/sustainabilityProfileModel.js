@@ -6,12 +6,16 @@ const sustainabilityProfileSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true
+        unique: true // Ensures only one profile per user
     },
-    primaryWaterSources: {
-        type: [String],
-        required: true,
-    },
+    primaryWaterSources: [{
+        type: String,
+        required: true
+    }],
+    primaryEnergySources: [{
+        type: String,
+        required: true
+    }],
     separateWaste: {
         type: Boolean,
         required: true
@@ -22,21 +26,15 @@ const sustainabilityProfileSchema = new mongoose.Schema({
     },
     plasticBagSize: {
         type: Number,
-        default: 5,
-        min: 1,
-        max: 100
+        default: 5
     },
     foodWasteBagSize: {
         type: Number,
-        default: 5,
-        min: 1,
-        max: 100
+        default: 5
     },
     paperWasteBagSize: {
         type: Number,
-        default: 5,
-        min: 1,
-        max: 100
+        default: 5
     },
     profileCompleted: {
         type: Boolean,
@@ -49,7 +47,6 @@ const sustainabilityProfileSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
-
 // Compound index for faster queries
 sustainabilityProfileSchema.index({ userId: 1 });
 

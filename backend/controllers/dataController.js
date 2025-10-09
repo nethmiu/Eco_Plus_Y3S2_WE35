@@ -2,7 +2,6 @@ const ElectricityUsage = require('../models/electricityUsageModel');
 const WaterUsage = require('../models/waterUsageModel');
 const WasteUsage = require('../models/wasteUsageModel');
 const asyncHandler = require('express-async-handler'); 
-
 const SustainabilityProfile = require('../models/sustainabilityProfileModel');
 
 exports.addElectricityData = async (req, res) => {
@@ -49,6 +48,23 @@ exports.getElectricityHistory = async (req, res) => {
     }
 };
 
+exports.deleteElectricityData = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const electricityData = await ElectricityUsage.findByIdAndDelete(id);
+        res.status(200).json({
+            status: 'success',
+            data: { electricityData }
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Error deleting electricity data' 
+        });
+    }
+};
+
+
 
 exports.addWaterData = async (req, res) => {
     try {
@@ -90,6 +106,22 @@ exports.getWaterHistory = async (req, res) => {
         res.status(500).json({ 
             status: 'error', 
             message: 'Error fetching water history' 
+        });
+    }
+};
+
+exports.deleteWaterData = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const waterData = await WaterUsage.findByIdAndDelete(id);
+        res.status(200).json({
+            status: 'success',
+            data: { waterData }
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Error deleting water data' 
         });
     }
 };
@@ -140,6 +172,22 @@ exports.getWasteHistory = async (req, res) => {
         res.status(500).json({ 
             status: 'error', 
             message: 'Error fetching waste history' 
+        });
+    }
+};
+
+exports.deleteWasteData = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const wasteData = await WasteUsage.findByIdAndDelete(id);
+        res.status(200).json({
+            status: 'success',
+            data: { wasteData }
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Error deleting waste data' 
         });
     }
 };
@@ -247,11 +295,11 @@ function getWeekNumber(d) {
 }
 
 
-
 exports.setSustainabilityProfile = async (req, res) => {
     try {
         const { 
             primaryWaterSources,
+            primaryEnergySources,
             separateWaste,
             compostWaste,
             plasticBagSize,
@@ -260,10 +308,10 @@ exports.setSustainabilityProfile = async (req, res) => {
         } = req.body;
 
         // Validate required fields
-        if (!primaryWaterSources || separateWaste === undefined) {
+        if (!primaryWaterSources || !primaryEnergySources || separateWaste === undefined) {
             return res.status(400).json({
                 status: 'fail',
-                message: 'Primary water sources and waste separation status are required'
+                message: 'Primary water sources, energy sources and waste separation status are required'
             });
         }
 
@@ -275,6 +323,7 @@ exports.setSustainabilityProfile = async (req, res) => {
         if (existingProfile) {
             // Update existing profile
             existingProfile.primaryWaterSources = primaryWaterSources;
+            existingProfile.primaryEnergySources = primaryEnergySources;
             existingProfile.separateWaste = separateWaste;
             existingProfile.compostWaste = compostWaste || false;
             existingProfile.plasticBagSize = plasticBagSize || 5;
@@ -288,6 +337,7 @@ exports.setSustainabilityProfile = async (req, res) => {
             existingProfile = await SustainabilityProfile.create({
                 userId: req.user.id,
                 primaryWaterSources,
+                primaryEnergySources,
                 separateWaste,
                 compostWaste: compostWaste || false,
                 plasticBagSize: plasticBagSize || 5,
