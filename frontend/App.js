@@ -13,7 +13,6 @@ import ProfileScreen from './screens/ProfileScreen';
 import EditAdminProfile from './screens/EditAdminProfile';
 import EditEnvProfile from './screens/EditEnvProfile';
 
-
 import ElectricityDataScreen from './screens/Consumption Data - IT22129376/ElectricityDataScreen';
 import WaterDataScreen from './screens/Consumption Data - IT22129376/WaterDataScreen';
 import WasteDataScreen from './screens/Consumption Data - IT22129376/WasteDataScreen';
@@ -21,10 +20,6 @@ import ConsumptionScreen from './screens/Consumption Data - IT22129376/Consumpti
 import UsageHistoryScreen from './screens/Consumption Data - IT22129376/UsageHistoryScreen';
 import SustainabilityProfileScreen from './screens/Consumption Data - IT22129376/SustainabilityProfile';
 import CameraScreen from './screens/Consumption Data - IT22129376/CameraScreen';
-
-
-import SustainabilityProfileScreen from './screens/SustainabilityProfile';
-import CameraScreen from './screens/CameraScreen';
 
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
@@ -47,86 +42,6 @@ import DataEntryModalStack from './navigation/DataEntryModalStack';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-
-
-// Bottom Tab Navigator
-function BottomTabNavigator() {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#999',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#F0F0F0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-      }}
-    >
-      <Tab.Screen 
-        name="DashboardTab" 
-        component={DashboardScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-          headerShown: false,
-        }}
-      />
-      
-      <Tab.Screen 
-        name="AddDataTab" 
-        component={DataEntryModalStack}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons 
-              name="plus-circle" 
-              size={size} 
-              color={color} 
-            />
-          ),
-          headerShown: false,
-        }}
-      />
-      
-      <Tab.Screen 
-        name="ChallengesTab" 
-        component={ChallengeListScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trophy-outline" size={size} color={color} />
-          ),
-          headerShown: true,
-          title: 'Eco Challenges',
-        }}
-      />
-      
-      <Tab.Screen 
-        name="MoreTab" 
-        component={HomeScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="menu-outline" size={size} color={color} />
-          ),
-          headerShown: false,
-        }}
-      />
-    </Tab.Navigator>
-  );
-}
-
-// Main App Component
 
 
 // Custom Plus Button Component for the middle tab
@@ -235,21 +150,12 @@ export default function App() {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        {/* Profile Screens */}
         <Stack.Screen name="Profile" component={ProfileScreen} />
-        
+      
         {/* Main App with Bottom Tabs */}
         <Stack.Screen name="MainApp" component={BottomTabNavigator} />
         
-        {/* Other Screens that should be outside the tab navigator */}
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        
-        {/* Main App with Bottom Tabs */}
-        <Stack.Screen name="MainApp" component={BottomTabNavigator} />
-        
-        {/* Other Screens that should be outside the tab navigator */}
+          {/* Other Screens that should be outside the tab navigator */}
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
         <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
