@@ -8,9 +8,11 @@ config.js
 
 # Expo
 .expo/
-dist/
-web-build/
-expo-env.d.ts
+/android
+/ios
+/dist
+/web-build
+/expo-env.d.ts
 
 # Native
 *.orig.*
@@ -37,3 +39,4 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
