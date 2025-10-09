@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 // --- Screen Imports ---
 import LandingScreen from './screens/LandingScreen';
@@ -15,10 +16,10 @@ import EditEnvProfile from './screens/EditEnvProfile';
 import ElectricityDataScreen from './screens/ElectricityDataScreen';
 import WaterDataScreen from './screens/WaterDataScreen';
 import WasteDataScreen from './screens/WasteDataScreen';
+import DataEntryHomeScreen from './screens/DataEntryHomeScreen';
 
 import SustainabilityProfileScreen from './screens/SustainabilityProfile';
 import CameraScreen from './screens/CameraScreen';
-
 
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
@@ -36,24 +37,123 @@ import ResetPasswordScreen from './screens/ResetPasswordScreen';
 
 import DashboardScreen from './screens/DashboardScreen';
 
-const Stack = createStackNavigator();
+// Navigation Imports
+import DataEntryModalStack from './navigation/DataEntryModalStack';
 
+const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// Custom Plus Button Component for the middle tab
+const CustomPlusButton = ({ onPress }) => (
+  <MaterialCommunityIcons
+    name="plus-circle"
+    size={56}
+    color="#4CAF50"
+    style={{
+      shadowColor: '#4CAF50',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    }}
+    onPress={onPress}
+  />
+);
+
+// Bottom Tab Navigator
+function BottomTabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: '#4CAF50',
+        tabBarInactiveTintColor: '#999',
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F0F0F0',
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+      }}
+    >
+      <Tab.Screen 
+        name="DashboardTab" 
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: '',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+          headerShown: false,
+        }}
+      />
+      
+      <Tab.Screen 
+        name="AddDataTab" 
+        component={DataEntryModalStack}
+        options={{
+          tabBarLabel: '',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons 
+              name="plus-circle" 
+              size={size} 
+              color={color} 
+            />
+          ),
+          headerShown: false,
+        }}
+      />
+      
+      <Tab.Screen 
+        name="ChallengesTab" 
+        component={ChallengeListScreen}
+        options={{
+          tabBarLabel: '',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trophy-outline" size={size} color={color} />
+          ),
+          headerShown: true,
+          title: 'Eco Challenges',
+        }}
+      />
+      
+      <Tab.Screen 
+        name="MoreTab" 
+        component={HomeScreen}
+        options={{
+          tabBarLabel: '',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="menu-outline" size={size} color={color} />
+          ),
+          headerShown: false,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Main App Component
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Landing" screenOptions={{ headerShown: false }}>
-        
-      
+        {/* Auth Screens */}
         <Stack.Screen name="Landing" component={LandingScreen} /> 
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         
+        {/* Main App with Bottom Tabs */}
+        <Stack.Screen name="MainApp" component={BottomTabNavigator} />
+        
+        {/* Other Screens that should be outside the tab navigator */}
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
-        <Stack.Screen name="ChallengeList" component={ChallengeListScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
         <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
@@ -62,20 +162,16 @@ export default function App() {
         <Stack.Screen name="EditAdminProfile" component={EditAdminProfile} />
         <Stack.Screen name="EditEnvProfile" component={EditEnvProfile} />
         <Stack.Screen name="EnvironmentalistDashboard" component={EnvironmentalistDashboard} />
-
-        <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} />
-        <Stack.Screen name="WaterData" component={WaterDataScreen} />
-        <Stack.Screen name="WasteData" component={WasteDataScreen} />
-        
-       
-
         <Stack.Screen name="MapScreen" component={MapScreen} />
         
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        {/* Data Entry Screens (also accessible from tabs) */}
+        <Stack.Screen name="ElectricityData" component={ElectricityDataScreen} options={{ title: 'Add Electricity Data' }} />
+        <Stack.Screen name="WaterData" component={WaterDataScreen} options={{ title: 'Add Water Data' }} />
+        <Stack.Screen name="WasteData" component={WasteDataScreen} options={{ title: 'Add Waste Data' }} />
         <Stack.Screen name="SustainabilityProfile" component={SustainabilityProfileScreen} />
+        <Stack.Screen name="DataEntryScreen" component={DataEntryHomeScreen} />
         <Stack.Screen name="CameraScreen" component={CameraScreen} options={{ headerShown: false }}/>
-       
-
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

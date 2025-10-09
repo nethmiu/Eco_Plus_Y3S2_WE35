@@ -24,10 +24,8 @@ import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
 
-
-// --- FIX: Move InputGroup outside the main component and use React.memo ---
-// This prevents the TextInput from losing focus due to re-renders.
-const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
+// --- Helper Component: InputGroup (Retained for Keyboard Fix) ---
+const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false, isNumeric = false }) => (
     <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>
             <Ionicons name={icon} size={14} color="#6366f1" /> {placeholder}
@@ -37,7 +35,7 @@ const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboar
             placeholder={placeholder}
             value={value}
             onChangeText={onChangeText}
-            keyboardType={keyboardType}
+            keyboardType={isNumeric ? 'numeric' : keyboardType}
             multiline={isMultiline}
             numberOfLines={isMultiline ? 4 : 1}
             textAlignVertical={isMultiline ? 'top' : 'center'}
@@ -45,25 +43,52 @@ const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboar
         />
     </View>
 ));
-// --- END FIX ---
-
+// --- END InputGroup ---
 
 export default function ManageChallengesScreen({ navigation }) {
     const [challenges, setChallenges] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [modalVisible, setModalVisible] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [awardModalVisible, setAwardModalVisible] = useState(false); // NEW STATE
     const [currentChallenge, setCurrentChallenge] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(''); // To display who is logged in
+    
+    // Edit Form States
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [goal, setGoal] = useState('');
     const [unit, setUnit] = useState('');
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Award Points States
+    const [pointsToAward, setPointsToAward] = useState('50'); // Default suggestion
+    const [awardUserIdInput, setAwardUserIdInput] = useState(''); // User ID of the user being awarded
+    const [isAwarding, setIsAwarding] = useState(false);
+    
+    // Date Picker States
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
     const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
+
 
     useEffect(() => {
+        // Fetch current admin user ID (or the logged-in user's ID)
+        const fetchUserId = async () => {
+            try {
+                const token = await SecureStore.getItemAsync(TOKEN_KEY);
+                if (!token) return;
+                const response = await axios.get(`http://${config.IP}:${config.PORT}/api/users/me`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setCurrentUserId(response.data.data.user._id);
+            } catch (e) {
+                console.error("Could not fetch user ID for admin dashboard context.");
+            }
+        };
+        
+        fetchUserId();
+
         const unsubscribe = navigation.addListener('focus', fetchChallenges);
         return unsubscribe;
     }, [navigation]);
@@ -91,7 +116,56 @@ export default function ManageChallengesScreen({ navigation }) {
         setUnit(challenge.unit);
         setStartDate(new Date(challenge.startDate));
         setEndDate(new Date(challenge.endDate));
-        setModalVisible(true);
+        setEditModalVisible(true);
+    };
+
+    // --- NEW: Open Award Modal ---
+    const handleAwardPress = (challenge) => {
+        setCurrentChallenge(challenge);
+        setAwardUserIdInput(''); // Clear previous input
+        setPointsToAward('50'); // Reset suggested points
+        setAwardModalVisible(true);
+    };
+    
+    // --- NEW: Handle Points Awarding API Call ---
+    const handleAwardPoints = async () => {
+        if (!awardUserIdInput || isNaN(parseInt(pointsToAward)) || parseInt(pointsToAward) <= 0) {
+            Alert.alert('Validation Error', 'Please enter a valid User ID and points amount (min 1).');
+            return;
+        }
+
+        setIsAwarding(true);
+        try {
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            
+            // NOTE: The backend expects a valid User ID in the payload.
+            // Since Admin may award points to ANY user, we pass the User ID input.
+            // However, the current backend implementation uses req.user.id implicitly for the awardee.
+            // We need to assume the Admin is testing by entering *their own* ID or another valid ID.
+            
+            await axios.patch(`${API_URL}/evaluate`, {
+                challengeId: currentChallenge._id,
+                userId: awardUserIdInput, // Passing ID from modal input
+                points: parseInt(pointsToAward),
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            
+            Alert.alert(
+                'Success', 
+                `${pointsToAward} points awarded to User ID: ${awardUserIdInput} for ${currentChallenge.title}!`
+            );
+            setAwardModalVisible(false);
+            fetchChallenges(); 
+        } catch (error) {
+            console.error('Award Error:', error.response?.data || error.message);
+            Alert.alert(
+                'Award Failed', 
+                error.response?.data?.message || 'Failed to award points. Check User/Challenge ID validity.'
+            );
+        } finally {
+            setIsAwarding(false);
+        }
     };
 
     const handleUpdateChallenge = async () => {
@@ -122,7 +196,7 @@ export default function ManageChallengesScreen({ navigation }) {
                 headers: { Authorization: `Bearer ${token}` },
             });
             Alert.alert('Success', 'Challenge updated successfully!');
-            setModalVisible(false);
+            setEditModalVisible(false);
             fetchChallenges(); 
         } catch (error) {
             Alert.alert('Update Failed', error.response?.data?.message || 'Failed to update challenge.');
@@ -156,6 +230,15 @@ export default function ManageChallengesScreen({ navigation }) {
         }
     };
 
+    // Use useCallback for setters in Modal (Keyboard Fix)
+    const handleSetTitle = useCallback(value => setTitle(value), []);
+    const handleSetDescription = useCallback(value => setDescription(value), []);
+    const handleSetGoal = useCallback(value => setGoal(value), []);
+    const handleSetUnit = useCallback(value => setUnit(value), []);
+    const handleSetAwardUserId = useCallback(value => setAwardUserIdInput(value), []);
+    const handleSetPointsToAward = useCallback(value => setPointsToAward(value), []);
+
+
     const showDatePicker = () => setDatePickerVisible(true);
     const hideDatePicker = () => setDatePickerVisible(false);
     const handleConfirmStartDate = (date) => {
@@ -169,12 +252,6 @@ export default function ManageChallengesScreen({ navigation }) {
         setEndDate(date);
         hideEndDatePicker();
     };
-
-    // Use useCallback for setter functions passed to InputGroup (Crucial for keyboard fix in modal)
-    const handleSetTitle = useCallback(value => setTitle(value), []);
-    const handleSetDescription = useCallback(value => setDescription(value), []);
-    const handleSetGoal = useCallback(value => setGoal(value), []);
-    const handleSetUnit = useCallback(value => setUnit(value), []);
 
 
     if (loading) {
@@ -202,6 +279,13 @@ export default function ManageChallengesScreen({ navigation }) {
             </View>
 
             <View style={styles.actionButtons}>
+                {/* NEW AWARD BUTTON */}
+                <TouchableOpacity onPress={() => handleAwardPress(item)} style={[styles.button, styles.awardButton]}>
+                    <Ionicons name="ribbon-outline" size={18} color="#ffffff" />
+                    <Text style={styles.buttonText}>Award</Text>
+                </TouchableOpacity>
+                {/* END NEW AWARD BUTTON */}
+
                 <TouchableOpacity onPress={() => handleEditPress(item)} style={[styles.button, styles.editButton]}>
                     <Ionicons name="create-outline" size={18} color="#ffffff" />
                     <Text style={styles.buttonText}>Edit</Text>
@@ -237,12 +321,12 @@ export default function ManageChallengesScreen({ navigation }) {
                 }
             />
 
-            {/* Edit Modal */}
+            {/* Edit Modal (Existing) */}
             <Modal
                 animationType="slide"
                 transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                visible={editModalVisible}
+                onRequestClose={() => setEditModalVisible(false)}
             >
                 <KeyboardAvoidingView
                     style={styles.modalOverlay}
@@ -252,13 +336,11 @@ export default function ManageChallengesScreen({ navigation }) {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.modalTitle}>Edit Challenge: {currentChallenge?.title}</Text>
                             
-                            {/* FIX: Using memoized InputGroup and handlers */}
                             <InputGroup icon="create-outline" placeholder="Title" value={title} onChangeText={handleSetTitle} />
                             <InputGroup icon="document-text-outline" placeholder="Description" value={description} onChangeText={handleSetDescription} isMultiline={true} />
                             <InputGroup icon="stats-chart-outline" placeholder="Goal Value" value={goal} onChangeText={handleSetGoal} keyboardType="numeric" />
                             <InputGroup icon="cube-outline" placeholder="Unit (e.g., kWh)" value={unit} onChangeText={handleSetUnit} />
-                            {/* END FIX */}
-
+                            
                             <View style={styles.datePickerContainer}>
                                 <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color="#6366f1" /> Start Date: {startDate.toLocaleDateString()}</Text>
                                 <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
@@ -277,20 +359,20 @@ export default function ManageChallengesScreen({ navigation }) {
                                 isVisible={isDatePickerVisible}
                                 mode="date"
                                 onConfirm={handleConfirmStartDate}
-                                onCancel={hideDatePicker}
+                                onCancel={() => setDatePickerVisible(false)}
                                 date={startDate}
                             />
                             <DateTimePickerModal
                                 isVisible={isEndDatePickerVisible}
                                 mode="date"
                                 onConfirm={handleConfirmEndDate}
-                                onCancel={hideEndDatePicker}
+                                onCancel={() => setEndDatePickerVisible(false)}
                                 date={endDate}
                                 minimumDate={startDate}
                             />
 
                             <View style={styles.modalButtons}>
-                                <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setModalVisible(false)}>
+                                <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setEditModalVisible(false)}>
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
@@ -309,6 +391,64 @@ export default function ManageChallengesScreen({ navigation }) {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+            
+            {/* --- NEW AWARD POINTS MODAL --- */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={awardModalVisible}
+                onRequestClose={() => setAwardModalVisible(false)}
+            >
+                <KeyboardAvoidingView
+                    style={styles.modalOverlay}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <View style={styles.modalContent}>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={[styles.modalTitle, { color: '#4CAF50' }]}>Award Points: {currentChallenge?.title}</Text>
+                            <Text style={styles.modalSubtitle}>Manually award points to a specific user for completing this challenge.</Text>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={[styles.inputLabel, { color: '#2196F3' }]}><Ionicons name="person-outline" size={14} color="#2196F3" /> Awardee User ID *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter User ID (e.g., 651a24d5...)"
+                                    value={awardUserIdInput}
+                                    onChangeText={handleSetAwardUserId}
+                                    placeholderTextColor="#9ca3af"
+                                />
+                                <Text style={styles.inputHint}>**Note:** Find the User ID via the Manage Users screen or backend logs.</Text>
+                            </View>
+
+                            <InputGroup 
+                                icon="ribbon-outline" 
+                                placeholder="Points to Award" 
+                                value={pointsToAward} 
+                                onChangeText={handleSetPointsToAward} 
+                                isNumeric={true}
+                            />
+                            
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setAwardModalVisible(false)}>
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.modalButton, styles.awardModalButton, isAwarding && styles.submitButtonDisabled]} 
+                                    onPress={handleAwardPoints}
+                                    disabled={isAwarding}
+                                >
+                                    {isAwarding ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <Text style={styles.awardButtonText}>Award Points</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+            {/* --- END NEW AWARD POINTS MODAL --- */}
         </SafeAreaView>
     );
 }
@@ -316,7 +456,6 @@ export default function ManageChallengesScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    // NOTE: This backButton/headerTitle styling is overridden in the return block for the full list view.
     backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10, padding: 5 },
     headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#1a202c', marginBottom: 25, textAlign: 'center', marginTop: 70 },
     listContent: { paddingHorizontal: 16, paddingBottom: 20 },
@@ -355,8 +494,29 @@ const styles = StyleSheet.create({
     detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
     challengeDetailText: { fontSize: 14, color: '#374151', marginLeft: 8 },
     goalValue: { fontWeight: '700', color: '#4CAF50' },
-    actionButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, gap: 10 },
-    button: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
+    
+    // Action Buttons Row Styling
+    actionButtons: { 
+        flexDirection: 'row', 
+        justifyContent: 'flex-end', 
+        marginTop: 15, 
+        gap: 10 
+    },
+    button: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingVertical: 8, 
+        paddingHorizontal: 12, 
+        borderRadius: 10, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 3, 
+        elevation: 3 
+    },
+    awardButton: {
+        backgroundColor: '#4CAF50', // Green for Awarding
+    },
     editButton: { backgroundColor: '#FF9800' },
     deleteButton: { backgroundColor: '#D9534F' },
     buttonText: { color: '#fff', fontWeight: '600', marginLeft: 5 },
@@ -364,7 +524,8 @@ const styles = StyleSheet.create({
     // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
     modalContent: { backgroundColor: '#fff', padding: 25, borderRadius: 20, width: '100%', maxHeight: '90%' },
-    modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginBottom: 25, textAlign: 'center' },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginBottom: 10, textAlign: 'center' },
+    modalSubtitle: { fontSize: 14, color: '#7f8c8d', textAlign: 'center', marginBottom: 20 },
     
     inputGroup: { marginBottom: 15 },
     inputLabel: { fontSize: 14, fontWeight: '600', color: '#495057', marginBottom: 8 },
@@ -379,7 +540,11 @@ const styles = StyleSheet.create({
     modalButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
     cancelModalButton: { backgroundColor: '#9ca3af' },
     updateModalButton: { backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 5 },
+    awardModalButton: { backgroundColor: '#4CAF50', shadowColor: '#4CAF50', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 5 }, // NEW
+    
     cancelButtonText: { color: '#fff', fontWeight: '700' },
     updateButtonText: { color: '#fff', fontWeight: '700' },
+    awardButtonText: { color: '#fff', fontWeight: '700' }, // NEW
     submitButtonDisabled: { opacity: 0.6 },
+    inputHint: { fontSize: 12, color: '#dc3545', marginTop: -10, marginBottom: 10, marginLeft: 5 },
 });

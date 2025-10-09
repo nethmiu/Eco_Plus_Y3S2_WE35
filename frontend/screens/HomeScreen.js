@@ -292,9 +292,7 @@ export default function HomeScreen({ navigation }) {
         navigation.navigate('Profile', { user: user });
     }, [navigation, user]);
 
-    const navigateToChallenges = useCallback(() => {
-        navigation.navigate('ChallengeList');
-    }, [navigation]);
+    // The navigateToChallenges function is removed
 
     const navigateToLeaderboard = useCallback(() => {
         navigation.navigate('Leaderboard');
@@ -393,14 +391,7 @@ export default function HomeScreen({ navigation }) {
                         style={styles.challengesButton} 
                     />
                     
-                    <ActionButton
-                        title="View Challenges"
-                        onPress={navigateToChallenges}
-                        icon="trophy"
-                        iconLibrary="MaterialCommunityIcons"
-                        variant="secondary"
-                        style={styles.challengesButton}
-                    />
+                    {/* The "View Challenges" button is removed here. */}
 
                     <ActionButton
                         title="View Leaderboard"
