@@ -181,19 +181,15 @@ const StatsCard = React.memo(() => (
         <View style={styles.statsGrid}>
             <View style={styles.statItem}>
                 <MaterialCommunityIcons name="leaf" size={24} color="#4CAF50" />
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Days Active</Text>
+                <Text style={styles.statNumber}>Regularly</Text>
+                <Text style={styles.statLabel}>Active</Text>
             </View>
             <View style={styles.statItem}>
                 <MaterialCommunityIcons name="recycle" size={24} color="#2196F3" />
-                <Text style={styles.statNumber}>85%</Text>
+                <Text style={styles.statNumber}>Calculate</Text>
                 <Text style={styles.statLabel}>Eco Score</Text>
             </View>
-            <View style={styles.statItem}>
-                <MaterialCommunityIcons name="earth" size={24} color="#FF9800" />
-                <Text style={styles.statNumber}>45kg</Text>
-                <Text style={styles.statLabel}>CO₂ Saved</Text>
-            </View>
+            
         </View>
     </View>
 ));
