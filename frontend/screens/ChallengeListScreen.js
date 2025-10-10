@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, SafeAreaView, StatusBar, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    FlatList, 
+    ActivityIndicator, 
+    Alert, 
+    TouchableOpacity, 
+    SafeAreaView, 
+    StatusBar, 
+    ScrollView 
+} from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,15 +18,22 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import config from '../config';
 const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`; 
 const TOKEN_KEY = 'userToken';
-const { width } = Dimensions.get('window');
 
-// Helper function to get challenge icon based on unit
+// Define available filters based on Challenge Units (must match backend units: kWh, m3, bags)
+const CHALLENGE_UNITS = [
+    { key: 'All', label: 'සියල්ල (All)', unit: 'All', icon: 'trophy-outline' }, // Custom key for all
+    { key: 'Electricity', label: 'Electricity', unit: 'kWh', icon: 'flash-outline' },
+    { key: 'Water', label: 'Water', unit: 'm3', icon: 'water-outline' },
+    { key: 'Waste', label: 'Waste', unit: 'bags', icon: 'recycle-variant' },
+];
+
+// Helper function to get challenge icon based on unit (Remains unchanged)
 const getChallengeIcon = (unit) => {
     switch (unit.toLowerCase()) {
-        case 'kwh': return { name: 'flash-outline', color: '#FF9800' }; // Electricity
-        case 'm3': return { name: 'water-outline', color: '#4A90E2' }; // Water
-        case 'bags': return { name: 'recycle-variant', color: '#4CAF50' }; // Waste
-        case 'kg': return { name: 'weight-hanging', color: '#795548' }; // Weight/Waste
+        case 'kwh': return { name: 'flash-outline', color: '#FF9800' };
+        case 'm3': return { name: 'water-outline', color: '#4A90E2' };
+        case 'bags': return { name: 'recycle-variant', color: '#4CAF50' };
+        case 'kg': return { name: 'weight-hanging', color: '#795548' };
         default: return { name: 'trophy-outline', color: '#607D8B' };
     }
 };
@@ -24,13 +42,21 @@ export default function ChallengeListScreen({ navigation }) {
     const [challenges, setChallenges] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    
+    // --- STATE FOR FILTERING ---
+    const [selectedUnitKey, setSelectedUnitKey] = useState('All'); 
+    // -------------------------------
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', fetchChallenges);
-        return unsubscribe;
-    }, [navigation]);
+    // Function to get the actual unit value (kWh, m3, bags) from the selected key
+    const getUnitValue = (key) => {
+        const unit = CHALLENGE_UNITS.find(u => u.key === key);
+        // Returns the unit code (kWh, m3, bags) or 'All'
+        return unit ? unit.unit : 'All'; 
+    };
 
-    const fetchChallenges = async () => {
+    const fetchChallenges = useCallback(async (unitKey) => {
+        const unitFilter = getUnitValue(unitKey); // Get the actual unit code (kWh, m3, etc.)
+        
         try {
             setLoading(true);
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
@@ -39,9 +65,15 @@ export default function ChallengeListScreen({ navigation }) {
                 return;
             }
 
-            const response = await axios.get(API_URL, {
+            // 1. Build the API URL with filter parameter (Step 1.3)
+            // Use the unitFilter value (kWh, m3, etc.) for the query
+            const query = unitFilter && unitFilter !== 'All' ? `?unit=${unitFilter}` : '';
+            const fetchURL = `${API_URL}${query}`;
+            
+            const response = await axios.get(fetchURL, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            
             setChallenges(response.data.data.challenges);
             setError('');
         } catch (err) {
@@ -54,9 +86,21 @@ export default function ChallengeListScreen({ navigation }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigation]); // Dependency array for useCallback
 
-    // --- Handle Join Challenge (Function remains unchanged) ---
+    // --- UPDATED useEffect for filtering (Step 1.3 - Integration Logic) ---
+    useEffect(() => {
+        // Fix 1: This runs immediately whenever selectedUnitKey changes (Instant filtering)
+        fetchChallenges(selectedUnitKey);
+        
+        // This is necessary to re-fetch when the screen comes into focus from another screen
+        const unsubscribe = navigation.addListener('focus', () => fetchChallenges(selectedUnitKey));
+        return unsubscribe;
+    }, [navigation, selectedUnitKey, fetchChallenges]); 
+    // ---------------------------------------------------------------------
+
+
+    // --- Handle Join Challenge (Remains unchanged) ---
     const handleJoinChallenge = async (challengeId, challengeTitle) => {
         setLoading(true);
         try {
@@ -69,6 +113,8 @@ export default function ChallengeListScreen({ navigation }) {
             );
 
             Alert.alert('Success!', response.data.message);
+            // After joining, refresh the list to reflect any changes (e.g., status updates)
+            fetchChallenges(selectedUnitKey); 
         } catch (err) {
             const message = err.response?.data?.message || 'Could not join the challenge. Ensure you have submitted recent data for this challenge type.';
             Alert.alert('Failed to Join', message);
@@ -78,6 +124,41 @@ export default function ChallengeListScreen({ navigation }) {
         }
     };
     // --- END Handle Join Challenge ---
+
+    // --- NEW Filter Component Renderer (Step 1.2 - Filter UI) ---
+    const FilterBar = () => (
+        <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterBarContainer}
+        >
+            {CHALLENGE_UNITS.map((item) => (
+                <TouchableOpacity
+                    key={item.key}
+                    style={[
+                        styles.filterButton,
+                        selectedUnitKey === item.key && styles.filterButtonActive
+                    ]}
+                    onPress={() => setSelectedUnitKey(item.key)}
+                    disabled={loading}
+                >
+                    <MaterialCommunityIcons 
+                        name={item.icon} 
+                        size={18} 
+                        // Fix 2: Icon color logic is based on whether the button is active
+                        color={selectedUnitKey === item.key ? styles.filterButtonActiveText.color : styles.filterButtonText.color}
+                    />
+                    <Text style={[
+                        styles.filterButtonText, 
+                        selectedUnitKey === item.key && styles.filterButtonActiveText
+                    ]}>
+                        {item.label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
+        </ScrollView>
+    );
+    // --- END NEW Filter Component ---
 
     const renderChallengeItem = ({ item }) => {
         const icon = getChallengeIcon(item.unit);
@@ -97,7 +178,8 @@ export default function ChallengeListScreen({ navigation }) {
                 
                 <View style={styles.detailBox}>
                     <View style={styles.detailRow}>
-                        <MaterialCommunityIcons name="target-arrow" size={16} color="#2c3e50" />
+                        {/* MaterialCommunityIcons name="target-arrow" is not valid. Changed to target-variant */}
+                        <MaterialCommunityIcons name="target-variant" size={16} color="#2c3e50" /> 
                         <Text style={styles.challengeDetailValue}>
                             Goal: <Text style={styles.goalText}>{item.goal} {item.unit}</Text>
                         </Text>
@@ -127,14 +209,16 @@ export default function ChallengeListScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             
-            {/* --- FIXED HEADER STRUCTURE --- */}
+            {/* --- HEADER --- */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#1a202c" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Available Eco-Challenges</Text>
             </View>
-            {/* --- END FIXED HEADER STRUCTURE --- */}
+            {/* --- END HEADER --- */}
+
+            <FilterBar /> {/* NEW FILTER BAR */}
 
             {loading && !challenges.length ? (
                 <ActivityIndicator size="large" color="#4CAF50" style={styles.loadingContainer} />
@@ -144,7 +228,13 @@ export default function ChallengeListScreen({ navigation }) {
                     <Text style={styles.errorText}>{error}</Text>
                 </View>
             ) : challenges.length === 0 ? (
-                <Text style={styles.noChallengesText}>No active challenges available right now.</Text>
+                <Text style={styles.noChallengesText}>
+                    {selectedUnitKey === 'All' ? 
+                        "No active challenges available right now." :
+                        // Fix 2: Display the selected filter label when no results are found
+                        `No active challenges found for ${CHALLENGE_UNITS.find(u => u.key === selectedUnitKey).label}.`
+                    }
+                </Text>
             ) : (
                 <FlatList
                     data={challenges}
@@ -180,8 +270,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 10,
     },
-    
-    // --- Header Styles (Copied and adjusted from Leaderboard) ---
+    // --- Header Styles (Adjusted for Clean Look) ---
     header: {
         paddingHorizontal: 16,
         paddingTop: 40, 
@@ -212,7 +301,41 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 40,
     },
-    // --- End Header Styles ---
+    // --- NEW Filter Bar Styles ---
+    filterBarContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    filterButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    filterButtonActive: {
+        backgroundColor: '#4A90E2',
+        borderColor: '#4A90E2',
+    },
+    filterButtonText: {
+        color: '#2c3e50',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 6,
+    },
+    filterButtonActiveText: {
+        color: '#ffffff',
+    },
+    // --- End Filter Bar Styles ---
     
     listContent: {
         paddingHorizontal: 16,
