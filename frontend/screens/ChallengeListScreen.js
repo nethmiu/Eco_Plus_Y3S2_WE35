@@ -43,9 +43,9 @@ export default function ChallengeListScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // --- STATE FOR FILTERING (Step 1.2) ---
+    // --- STATE FOR FILTERING ---
     const [selectedUnitKey, setSelectedUnitKey] = useState('All'); 
-    // ----------------------------------------
+    // -------------------------------
 
     // Function to get the actual unit value (kWh, m3, bags) from the selected key
     const getUnitValue = (key) => {
