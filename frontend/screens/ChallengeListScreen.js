@@ -50,12 +50,11 @@ export default function ChallengeListScreen({ navigation }) {
     // Function to get the actual unit value (kWh, m3, bags) from the selected key
     const getUnitValue = (key) => {
         const unit = CHALLENGE_UNITS.find(u => u.key === key);
-        // Returns the unit code (kWh, m3, bags) or 'All'
-        return unit ? unit.unit : 'All'; 
+        return unit ? unit.unit : 'All';
     };
 
     const fetchChallenges = useCallback(async (unitKey) => {
-        const unitFilter = getUnitValue(unitKey); // Get the actual unit code (kWh, m3, etc.)
+        const unitFilter = getUnitValue(unitKey); // Get the actual unit code
         
         try {
             setLoading(true);
@@ -66,7 +65,6 @@ export default function ChallengeListScreen({ navigation }) {
             }
 
             // 1. Build the API URL with filter parameter (Step 1.3)
-            // Use the unitFilter value (kWh, m3, etc.) for the query
             const query = unitFilter && unitFilter !== 'All' ? `?unit=${unitFilter}` : '';
             const fetchURL = `${API_URL}${query}`;
             
@@ -90,13 +88,12 @@ export default function ChallengeListScreen({ navigation }) {
 
     // --- UPDATED useEffect for filtering (Step 1.3 - Integration Logic) ---
     useEffect(() => {
-        // Fix 1: This runs immediately whenever selectedUnitKey changes (Instant filtering)
+        // This useEffect runs once on mount, and then every time selectedUnitKey changes
         fetchChallenges(selectedUnitKey);
         
-        // This is necessary to re-fetch when the screen comes into focus from another screen
         const unsubscribe = navigation.addListener('focus', () => fetchChallenges(selectedUnitKey));
         return unsubscribe;
-    }, [navigation, selectedUnitKey, fetchChallenges]); 
+    }, [navigation, selectedUnitKey, fetchChallenges]); // fetchChallenges is now stable (used in useCallback)
     // ---------------------------------------------------------------------
 
 
@@ -145,7 +142,6 @@ export default function ChallengeListScreen({ navigation }) {
                     <MaterialCommunityIcons 
                         name={item.icon} 
                         size={18} 
-                        // Fix 2: Icon color logic is based on whether the button is active
                         color={selectedUnitKey === item.key ? styles.filterButtonActiveText.color : styles.filterButtonText.color}
                     />
                     <Text style={[
@@ -231,8 +227,7 @@ export default function ChallengeListScreen({ navigation }) {
                 <Text style={styles.noChallengesText}>
                     {selectedUnitKey === 'All' ? 
                         "No active challenges available right now." :
-                        // Fix 2: Display the selected filter label when no results are found
-                        `No active challenges found for ${CHALLENGE_UNITS.find(u => u.key === selectedUnitKey).label}.`
+                        `No active challenges found for ${getUnitValue(selectedUnitKey).toUpperCase()}.`
                     }
                 </Text>
             ) : (

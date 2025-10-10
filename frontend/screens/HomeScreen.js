@@ -181,19 +181,15 @@ const StatsCard = React.memo(() => (
         <View style={styles.statsGrid}>
             <View style={styles.statItem}>
                 <MaterialCommunityIcons name="leaf" size={24} color="#4CAF50" />
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Days Active</Text>
+                <Text style={styles.statNumber}>Regularly</Text>
+                <Text style={styles.statLabel}>Active</Text>
             </View>
             <View style={styles.statItem}>
                 <MaterialCommunityIcons name="recycle" size={24} color="#2196F3" />
-                <Text style={styles.statNumber}>85%</Text>
+                <Text style={styles.statNumber}>Calculate</Text>
                 <Text style={styles.statLabel}>Eco Score</Text>
             </View>
-            <View style={styles.statItem}>
-                <MaterialCommunityIcons name="earth" size={24} color="#FF9800" />
-                <Text style={styles.statNumber}>45kg</Text>
-                <Text style={styles.statLabel}>CO₂ Saved</Text>
-            </View>
+            
         </View>
     </View>
 ));
@@ -277,16 +273,25 @@ export default function HomeScreen({ navigation }) {
         );
     }, [navigation]);
 
-    const handleGetStarted = useCallback(() => {
+    const handleConsumptions = useCallback(() => {
         navigation.navigate('ElectricityData');
+    }, [navigation]);
+
+    const handleSustainabilityProfile = useCallback(() => {
+        navigation.navigate('SustainabilityProfile');
+    }, [navigation]);
+    const navigateToDashboard = useCallback(() => {
+        navigation.navigate('Dashboard'); 
     }, [navigation]);
 
     const navigateToProfile = useCallback(() => {
         navigation.navigate('Profile', { user: user });
     }, [navigation, user]);
 
-    const navigateToChallenges = useCallback(() => {
-        navigation.navigate('ChallengeList');
+    // The navigateToChallenges function is removed
+
+    const navigateToLeaderboard = useCallback(() => {
+        navigation.navigate('Leaderboard');
     }, [navigation]);
     
     // --- NEW LEADERBOARD NAVIGATOR ---
@@ -362,23 +367,41 @@ export default function HomeScreen({ navigation }) {
                     ]}
                 >
                     <Text style={styles.sectionTitle}>Quick Actions</Text>
-                    
                     <ActionButton
-                        title="Get Started"
-                        onPress={handleGetStarted}
-                        icon="play-circle"
+                        title="Setup Profile"
+                        onPress={handleSustainabilityProfile}
+                        icon="leaf-circle"   
                         iconLibrary="MaterialCommunityIcons"
                         variant="primary"
                         style={styles.getStartedButton}
                     />
-                    
+
                     <ActionButton
-                        title="View Challenges"
-                        onPress={navigateToChallenges}
-                        icon="trophy"
+                        title="Add Consumption Data"
+                        onPress={handleConsumptions}
+                        icon="chart-areaspline"  
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="primary"
+                        style={styles.getStartedButton}
+                    />
+                     <ActionButton
+                        title="View My Eco Dashboard"
+                        onPress={navigateToDashboard} 
+                        icon="view-dashboard"
+                        iconLibrary="MaterialCommunityIcons"
+                        variant="secondary" 
+                        style={styles.challengesButton} 
+                    />
+                    
+                    {/* The "View Challenges" button is removed here. */}
+
+                    <ActionButton
+                        title="View Leaderboard"
+                        onPress={navigateToLeaderboard}
+                        icon="chart-bar"
                         iconLibrary="MaterialCommunityIcons"
                         variant="secondary"
-                        style={styles.challengesButton}
+                        style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
                     />
                     
                     {/* --- NEW LEADERBOARD BUTTON --- */}

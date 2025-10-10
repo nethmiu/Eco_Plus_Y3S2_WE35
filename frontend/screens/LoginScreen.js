@@ -6,7 +6,10 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert,
-  ActivityIndicator 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native';
 import axios from 'axios';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -26,31 +29,38 @@ export default function LoginScreen({ navigation }) {
     const [biometricLoading, setBiometricLoading] = useState(false);
 
     useEffect(() => {
-        (async () => {
+        checkBiometricAvailability();
+    }, []);
+
+    const checkBiometricAvailability = async () => {
+        try {
             const compatible = await LocalAuthentication.hasHardwareAsync();
             const enrolled = await LocalAuthentication.isEnrolledAsync();
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            
             if (compatible && enrolled && token) {
                 setCanUseBiometrics(true);
             }
-        })();
-    }, []);
+        } catch (error) {
+            console.error('Error checking biometric availability:', error);
+        }
+    };
 
     const navigateByUserRole = (user) => {
         if (!user || !user.role) {
-            navigation.replace('Home');
+            navigation.replace('MainApp');
             return;
         }
 
-        switch (user.role) {
-            case 'Admin':
+        switch (user.role.toLowerCase()) {
+            case 'admin':
                 navigation.replace('AdminDashboard');
                 break;
-            case 'Environmentalist':
+            case 'environmentalist':
                 navigation.replace('EnvironmentalistDashboard');
                 break;
             default:
-                navigation.replace('Home');
+                navigation.replace('MainApp'); 
                 break;
         }
     };
@@ -61,19 +71,38 @@ export default function LoginScreen({ navigation }) {
             return;
         }
         
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert('Error', 'Please enter a valid email address.');
+            return;
+        }
+        
         setIsLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/login`, { email, password });
+            const response = await axios.post(`${API_URL}/login`, { 
+                email: email.toLowerCase().trim(), 
+                password 
+            });
+            
             if (response.data.status === 'success') {
                 const { token, data } = response.data;
                 const { user } = data;
 
                 await SecureStore.setItemAsync(TOKEN_KEY, token);
-                Alert.alert('Success', 'Login successful!');
-                navigateByUserRole(user);
+                
+                // Small delay for better UX
+                setTimeout(() => {
+                    navigateByUserRole(user);
+                }, 500);
+                
             }
         } catch (error) {
-            Alert.alert('Login Failed', error.response?.data?.message || 'An error occurred.');
+            console.error('Login error:', error.response?.data || error.message);
+            Alert.alert(
+                'Login Failed', 
+                error.response?.data?.message || 'Unable to connect to server. Please try again.'
+            );
         } finally {
             setIsLoading(false);
         }
@@ -83,142 +112,178 @@ export default function LoginScreen({ navigation }) {
         setBiometricLoading(true);
         try {
             const result = await LocalAuthentication.authenticateAsync({
-                promptMessage: 'Log in with your fingerprint',
+                promptMessage: 'Authenticate to access Eco-Pulse',
                 cancelLabel: 'Cancel',
-                fallbackLabel: 'Use password instead'
+                fallbackLabel: 'Use password',
+                disableDeviceFallback: false
             });
 
             if (result.success) {
                 const token = await SecureStore.getItemAsync(TOKEN_KEY);
                 if (!token) {
-                    Alert.alert('Error', 'Token not found. Please login with password first.');
+                    Alert.alert('Authentication Required', 'Please login with email and password first to enable biometric login.');
                     return;
                 }
 
-                const response = await axios.get(`${API_URL}/me`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                try {
+                    const response = await axios.get(`${API_URL}/me`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
 
-                const { user } = response.data.data;
-                navigateByUserRole(user);
+                    const { user } = response.data.data;
+                    setTimeout(() => {
+                        navigateByUserRole(user);
+                    }, 500);
+                    
+                } catch (apiError) {
+                    console.error('API Error during biometric login:', apiError);
+                    await SecureStore.deleteItemAsync(TOKEN_KEY);
+                    Alert.alert('Session Expired', 'Please login with email and password.');
+                }
             } else {
-                Alert.alert('Authentication Failed', 'Fingerprint authentication was not successful.');
+                if (result.error !== 'user_cancel') {
+                    Alert.alert('Authentication Failed', 'Biometric authentication was not successful. Please try again.');
+                }
             }
         } catch (error) {
-            console.error(error);
-            Alert.alert('Error', 'Biometric login failed. Please try again.');
+            console.error('Biometric error:', error);
+            Alert.alert('Error', 'Biometric authentication is not available. Please use password login.');
         } finally {
             setBiometricLoading(false);
         }
     };
 
+    const handleForgotPassword = () => {
+        if (!email) {
+            Alert.alert('Email Required', 'Please enter your email address first to reset your password.');
+            return;
+        }
+        navigation.navigate('ForgotPassword', { email });
+    };
+
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Ionicons name="leaf" size={60} color="#4CAF50" style={styles.logo} />
-                <Text style={styles.title}>Welcome Back!</Text>
-                <Text style={styles.subtitle}>Sign in to continue your eco-journey</Text>
-            </View>
-
-            <View style={styles.formContainer}>
-                <View style={styles.inputContainer}>
-                    <MaterialIcons name="email" size={22} color="#666" style={styles.inputIcon} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Email Address"
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        placeholderTextColor="#999"
-                    />
+        <KeyboardAvoidingView 
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView 
+                contentContainerStyle={styles.scrollContainer}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.header}>
+                    <Ionicons name="leaf" size={60} color="#4CAF50" style={styles.logo} />
+                    <Text style={styles.title}>Welcome Back!</Text>
+                    <Text style={styles.subtitle}>Sign in to continue your eco-journey</Text>
                 </View>
 
-                <View style={styles.inputContainer}>
-                    <MaterialIcons name="lock-outline" size={22} color="#666" style={styles.inputIcon} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!passwordVisible}
-                        placeholderTextColor="#999"
-                    />
-                    <TouchableOpacity 
-                        onPress={() => setPasswordVisible(!passwordVisible)}
-                        style={styles.eyeIcon}
-                    >
-                        <Ionicons 
-                            name={passwordVisible ? 'eye-off-outline' : 'eye-outline'} 
-                            size={22} 
-                            color="#666" 
+                <View style={styles.formContainer}>
+                    <View style={styles.inputContainer}>
+                        <MaterialIcons name="email" size={22} color="#666" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Email Address"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            placeholderTextColor="#999"
+                            autoComplete="email"
+                            importantForAutofill="yes"
                         />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <MaterialIcons name="lock-outline" size={22} color="#666" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!passwordVisible}
+                            placeholderTextColor="#999"
+                            autoComplete="password"
+                            importantForAutofill="yes"
+                            onSubmitEditing={handleLogin}
+                        />
+                        <TouchableOpacity 
+                            onPress={() => setPasswordVisible(!passwordVisible)}
+                            style={styles.eyeIcon}
+                        >
+                            <Ionicons 
+                                name={passwordVisible ? 'eye-off-outline' : 'eye-outline'} 
+                                size={22} 
+                                color="#666" 
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity onPress={handleForgotPassword}>
+                        <Text style={styles.forgotPassword}>Forgot Password?</Text>
                     </TouchableOpacity>
-                </View>
 
-                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                    <Text style={styles.forgotPassword}>Forgot Password?</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.loginButton, isLoading && styles.buttonDisabled]} 
-                    onPress={handleLogin}
-                    disabled={isLoading}
-                >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <>
-                            <Ionicons name="log-in" size={20} color="#fff" style={styles.buttonIcon} />
-                            <Text style={styles.buttonText}>Login</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
-
-                {canUseBiometrics && (
                     <TouchableOpacity 
-                        style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]} 
-                        onPress={handleBiometricLogin}
-                        disabled={biometricLoading}
+                        style={[styles.loginButton, isLoading && styles.buttonDisabled]} 
+                        onPress={handleLogin}
+                        disabled={isLoading}
                     >
-                        {biometricLoading ? (
+                        {isLoading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
                             <>
-                                <MaterialCommunityIcons name="fingerprint" size={22} color="#fff" style={styles.buttonIcon} />
-                                <Text style={styles.buttonText}>Login with Fingerprint</Text>
+                                <Ionicons name="log-in" size={20} color="#fff" style={styles.buttonIcon} />
+                                <Text style={styles.buttonText}>Login</Text>
                             </>
                         )}
                     </TouchableOpacity>
-                )}
 
-                <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or</Text>
-                    <View style={styles.dividerLine} />
+                    {canUseBiometrics && (
+                        <TouchableOpacity 
+                            style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]} 
+                            onPress={handleBiometricLogin}
+                            disabled={biometricLoading}
+                        >
+                            {biometricLoading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <>
+                                    <MaterialCommunityIcons name="fingerprint" size={22} color="#fff" style={styles.buttonIcon} />
+                                    <Text style={styles.buttonText}>Login with Fingerprint</Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>or</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.registerContainer}
+                    >
+                        <Text style={styles.registerText}>
+                            Don't have an account? <Text style={styles.registerLink}>Register Now</Text>
+                        </Text>
+                    </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity 
-                    onPress={() => navigation.navigate('Register')}
-                    style={styles.registerContainer}
-                >
-                    <Text style={styles.registerText}>
-                        Don't have an account? <Text style={styles.registerLink}>Register Now</Text>
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { 
         flex: 1, 
-        justifyContent: 'center', 
-        padding: 20, 
         backgroundColor: '#f8f9fa' 
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center', 
+        padding: 20,
     },
     header: {
         alignItems: 'center',

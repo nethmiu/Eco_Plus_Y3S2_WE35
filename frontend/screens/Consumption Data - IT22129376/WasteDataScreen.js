@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import config from '../config';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import config from '../../config';
 
 const API_URL = `http://${config.IP}:${config.PORT}/api`;
 const TOKEN_KEY = 'userToken';
@@ -71,6 +72,10 @@ export default function WasteDataScreen({ navigation }) {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    const handleComplete = () => {
+        navigation.navigate('ConsumptionScreen');
     };
 
     return (

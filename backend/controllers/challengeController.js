@@ -2,7 +2,7 @@ const Challenge = require('../models/challengeModel');
 const UserChallenge = require('../models/userChallengeModel');
 const ElectricityUsage = require('../models/electricityUsageModel'); 
 const WaterUsage = require('../models/waterUsageModel');
-const WasteUsage = require('../models/waterUsageModel'); 
+const WasteUsage = require('../models/wasteUsageModel'); 
 const mongoose = require('mongoose');
 
 // ====================================================================
@@ -26,8 +26,10 @@ const getLatestConsumption = async (userId, unit) => {
             // Assuming waste tracking is based on total bags for simplicity
             const wasteData = await WasteUsage.findOne({ userId }).sort({ collectionDate: -1 });
             if (wasteData) {
-                // Assuming wasteUsageModel tracks bags/kg
-                return wasteData.plasticBags + wasteData.paperBags + wasteData.foodWasteBags;
+                // FIX APPLIED: Explicitly convert String data from DB to Number 
+                return Number(wasteData.plasticBags) + 
+                       Number(wasteData.paperBags) + 
+                       Number(wasteData.foodWasteBags);
             }
             return 0;
         default:
@@ -56,10 +58,23 @@ exports.createChallenge = async (req, res) => {
 
 /**
  * Gets all challenges (for User View or Admin Management).
+ * *** UPDATED FOR FILTERING (1.1) ***
  */
 exports.getAllChallenges = async (req, res) => {
     try {
-        const challenges = await Challenge.find(); 
+        // 1. Get the filter parameter from the URL query
+        const filterUnit = req.query.unit;
+        let filter = {};
+
+        // 2. Apply filtering based on the unit parameter
+        if (filterUnit) {
+            // Handle Case Insensitivity using $regex and 'i' option
+            // This filters challenges where the 'unit' field matches the filterUnit (case insensitive)
+            // The ^ and $ ensures it matches the entire string, not just part of it.
+            filter = { unit: { $regex: new RegExp(`^${filterUnit}$`), $options: 'i' } };
+        }
+
+        const challenges = await Challenge.find(filter); 
         res.status(200).json({
             status: 'success',
             results: challenges.length,
@@ -207,28 +222,45 @@ exports.getLeaderboard = async (req, res) => {
 // ====================================================================
 
 /**
- * [REMOVED] The logic for getting the active challenge count has been removed.
- * exports.getActiveChallengesCount is no longer present.
+ * Gets the total count of currently active challenges for the Dashboard.
  */
-
+exports.getActiveChallengesCount = async (req, res) => {
+    // FIX: Returning 0 is a placeholder for stability until time zone logic is fully debugged.
+    try {
+        res.status(200).json({
+            status: 'success',
+            data: { activeCount: 0 },
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Error fetching active challenge count.' 
+        });
+    }
+};
 
 /**
  * FOR TESTING/ADMIN DEMO: Function to manually complete a challenge and assign points.
  */
 exports.evaluateChallenge = async (req, res) => {
     try {
-        const { challengeId, points } = req.body;
-        const userId = req.user.id; 
+        // NOTE: The Admin tool (Frontend) now sends the userId in the body.
+        const { challengeId, points, userId: targetUserId } = req.body; 
+        
+        // Ensure userId is present (for Admin tool usability)
+        if (!targetUserId) {
+            return res.status(400).json({ status: 'fail', message: 'User ID is required in the payload to award points.' });
+        }
         
         const challengeDetails = await Challenge.findById(challengeId);
         if (!challengeDetails) {
             return res.status(404).json({ status: 'fail', message: 'Challenge not found.' });
         }
 
-        const endValue = await getLatestConsumption(userId, challengeDetails.unit);
+        const endValue = await getLatestConsumption(targetUserId, challengeDetails.unit);
 
         const updatedChallenge = await UserChallenge.findOneAndUpdate(
-            { userId, challengeId },
+            { userId: targetUserId, challengeId },
             { 
                 status: 'Completed', 
                 pointsEarned: points,
@@ -239,7 +271,7 @@ exports.evaluateChallenge = async (req, res) => {
         );
 
         if (!updatedChallenge) {
-            return res.status(404).json({ status: 'fail', message: 'User not joined this challenge or challenge ID is invalid.' });
+            return res.status(404).json({ status: 'fail', message: 'User not joined this challenge. They must enroll first.' });
         }
 
         res.status(200).json({ 
