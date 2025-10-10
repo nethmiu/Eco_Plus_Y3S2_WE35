@@ -288,7 +288,9 @@ export default function HomeScreen({ navigation }) {
         navigation.navigate('Profile', { user: user });
     }, [navigation, user]);
 
-
+    const navigateToLeaderboard = useCallback(() => {
+        navigation.navigate('Leaderboard');
+    }, [navigation]);
 
     if (loading) {
         return (
