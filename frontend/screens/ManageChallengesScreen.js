@@ -25,14 +25,8 @@ const API_URL = `http://${config.IP}:${config.PORT}/api/challenges`;
 const TOKEN_KEY = 'userToken';
 
 
-<<<<<<< HEAD
-// --- FIX: Move InputGroup outside the main component and use React.memo ---
-// This prevents the TextInput from losing focus due to re-renders.
-const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false }) => (
-=======
 // --- Helper Component: InputGroup (Retained for Keyboard Fix) ---
 const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboardType = 'default', isMultiline = false, isNumeric = false }) => (
->>>>>>> main
     <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>
             <Ionicons name={icon} size={14} color="#6366f1" /> {placeholder}
@@ -42,11 +36,7 @@ const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboar
             placeholder={placeholder}
             value={value}
             onChangeText={onChangeText}
-<<<<<<< HEAD
-            keyboardType={keyboardType}
-=======
             keyboardType={isNumeric ? 'numeric' : keyboardType}
->>>>>>> main
             multiline={isMultiline}
             numberOfLines={isMultiline ? 4 : 1}
             textAlignVertical={isMultiline ? 'top' : 'center'}
@@ -54,12 +44,7 @@ const InputGroup = React.memo(({ icon, placeholder, value, onChangeText, keyboar
         />
     </View>
 ));
-<<<<<<< HEAD
-// --- END FIX ---
-
-=======
 // --- END InputGroup ---
->>>>>>> main
 
 export default function ManageChallengesScreen({ navigation }) {
     const [challenges, setChallenges] = useState([]);
@@ -83,7 +68,6 @@ export default function ManageChallengesScreen({ navigation }) {
     // Date Picker States
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
     const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
-    const [isUpdating, setIsUpdating] = useState(false);
 
 
     useEffect(() => {
@@ -148,11 +132,7 @@ export default function ManageChallengesScreen({ navigation }) {
                 headers: { Authorization: `Bearer ${token}` },
             });
             Alert.alert('Success', 'Challenge updated successfully!');
-<<<<<<< HEAD
-            setModalVisible(false);
-=======
             setEditModalVisible(false);
->>>>>>> main
             fetchChallenges(); 
         } catch (error) {
             Alert.alert('Update Failed', error.response?.data?.message || 'Failed to update challenge.');
@@ -186,8 +166,6 @@ export default function ManageChallengesScreen({ navigation }) {
         }
     };
 
-<<<<<<< HEAD
-=======
     // Use useCallback for setters in Modal (Keyboard Fix)
     const handleSetTitle = useCallback(value => setTitle(value), []);
     const handleSetDescription = useCallback(value => setDescription(value), []);
@@ -196,7 +174,6 @@ export default function ManageChallengesScreen({ navigation }) {
     // REMOVED: handleSetAwardUserEmail, handleSetPointsToAward
 
 
->>>>>>> main
     const showDatePicker = () => setDatePickerVisible(true);
     const hideDatePicker = () => setDatePickerVisible(false);
     const handleConfirmStartDate = (date) => {
@@ -210,12 +187,6 @@ export default function ManageChallengesScreen({ navigation }) {
         setEndDate(date);
         hideEndDatePicker();
     };
-
-    // Use useCallback for setter functions passed to InputGroup (Crucial for keyboard fix in modal)
-    const handleSetTitle = useCallback(value => setTitle(value), []);
-    const handleSetDescription = useCallback(value => setDescription(value), []);
-    const handleSetGoal = useCallback(value => setGoal(value), []);
-    const handleSetUnit = useCallback(value => setUnit(value), []);
 
 
     if (loading) {
@@ -235,19 +206,11 @@ export default function ManageChallengesScreen({ navigation }) {
             
             <View style={styles.detailRow}>
                 <Ionicons name="stats-chart-outline" size={14} color="#374151" />
-<<<<<<< HEAD
-                <Text style={styles.challengeDetailText}>Goal: <Text style={styles.goalValue}>{item.goal} {item.unit}</Text></Text>
-            </View>
-            <View style={styles.detailRow}>
-                <Ionicons name="calendar-outline" size={14} color="#374151" />
-                <Text style={styles.challengeDetailText}>Ends: {new Date(item.endDate).toLocaleDateString()}</Text>
-=======
                 <Text style={styles.detailText}>Goal: <Text style={styles.goalValue}>{item.goal} {item.unit}</Text></Text>
             </View>
             <View style={styles.detailRow}>
                 <Ionicons name="calendar-outline" size={14} color="#374151" />
                 <Text style={styles.detailText}>Ends: {new Date(item.endDate).toLocaleDateString()}</Text>
->>>>>>> main
             </View>
 
             <View style={styles.actionButtons}>
@@ -288,11 +251,7 @@ export default function ManageChallengesScreen({ navigation }) {
                 }
             />
 
-<<<<<<< HEAD
-            {/* Edit Modal */}
-=======
             {/* Edit Modal (Existing - Retained) */}
->>>>>>> main
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -307,20 +266,11 @@ export default function ManageChallengesScreen({ navigation }) {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.modalTitle}>Edit Challenge: {currentChallenge?.title}</Text>
                             
-<<<<<<< HEAD
-                            {/* FIX: Using memoized InputGroup and handlers */}
-=======
->>>>>>> main
                             <InputGroup icon="create-outline" placeholder="Title" value={title} onChangeText={handleSetTitle} />
                             <InputGroup icon="document-text-outline" placeholder="Description" value={description} onChangeText={handleSetDescription} isMultiline={true} />
                             <InputGroup icon="stats-chart-outline" placeholder="Goal Value" value={goal} onChangeText={handleSetGoal} keyboardType="numeric" />
                             <InputGroup icon="cube-outline" placeholder="Unit (e.g., kWh)" value={unit} onChangeText={handleSetUnit} />
-<<<<<<< HEAD
-                            {/* END FIX */}
-
-=======
                             
->>>>>>> main
                             <View style={styles.datePickerContainer}>
                                 <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color="#6366f1" /> Start Date: {startDate.toLocaleDateString()}</Text>
                                 <TouchableOpacity style={styles.dateButton} onPress={showDatePicker}>
@@ -352,11 +302,7 @@ export default function ManageChallengesScreen({ navigation }) {
                             />
 
                             <View style={styles.modalButtons}>
-<<<<<<< HEAD
-                                <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setModalVisible(false)}>
-=======
                                 <TouchableOpacity style={[styles.modalButton, styles.cancelModalButton]} onPress={() => setEditModalVisible(false)}>
->>>>>>> main
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity 
@@ -375,12 +321,9 @@ export default function ManageChallengesScreen({ navigation }) {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
-<<<<<<< HEAD
-=======
             
             {/* REMOVED: AWARD POINTS MODAL */}
 
->>>>>>> main
         </SafeAreaView>
     );
 }
@@ -388,10 +331,6 @@ export default function ManageChallengesScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-<<<<<<< HEAD
-    // NOTE: This backButton/headerTitle styling is overridden in the return block for the full list view.
-=======
->>>>>>> main
     backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10, padding: 5 },
     headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#1a202c', marginBottom: 25, textAlign: 'center', marginTop: 70 },
     listContent: { paddingHorizontal: 16, paddingBottom: 20 },
@@ -428,12 +367,6 @@ const styles = StyleSheet.create({
     statusText: { fontSize: 12, fontWeight: '600', color: '#6366f1' },
     challengeDescription: { fontSize: 14, color: '#495057', marginBottom: 15, lineHeight: 20 },
     detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-<<<<<<< HEAD
-    challengeDetailText: { fontSize: 14, color: '#374151', marginLeft: 8 },
-    goalValue: { fontWeight: '700', color: '#4CAF50' },
-    actionButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15, gap: 10 },
-    button: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 3 },
-=======
     detailText: { fontSize: 14, color: '#374151', marginLeft: 8 },
     goalValue: { fontWeight: '700', color: '#4CAF50' },
     
@@ -456,7 +389,6 @@ const styles = StyleSheet.create({
         shadowRadius: 3, 
         elevation: 3 
     },
->>>>>>> main
     editButton: { backgroundColor: '#FF9800' },
     deleteButton: { backgroundColor: '#D9534F' },
     buttonText: { color: '#fff', fontWeight: '600', marginLeft: 5 },
@@ -464,12 +396,8 @@ const styles = StyleSheet.create({
     // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
     modalContent: { backgroundColor: '#fff', padding: 25, borderRadius: 20, width: '100%', maxHeight: '90%' },
-<<<<<<< HEAD
-    modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginBottom: 25, textAlign: 'center' },
-=======
     modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginBottom: 10, textAlign: 'center' },
     modalSubtitle: { fontSize: 14, color: '#7f8c8d', textAlign: 'center', marginBottom: 20 },
->>>>>>> main
     
     inputGroup: { marginBottom: 15 },
     inputLabel: { fontSize: 14, fontWeight: '600', color: '#495057', marginBottom: 8 },
@@ -484,15 +412,9 @@ const styles = StyleSheet.create({
     modalButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
     cancelModalButton: { backgroundColor: '#9ca3af' },
     updateModalButton: { backgroundColor: '#6366f1', shadowColor: '#6366f1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 5 },
-<<<<<<< HEAD
-    cancelButtonText: { color: '#fff', fontWeight: '700' },
-    updateButtonText: { color: '#fff', fontWeight: '700' },
-    submitButtonDisabled: { opacity: 0.6 },
-=======
     
     cancelButtonText: { color: '#fff', fontWeight: '700' },
     updateButtonText: { color: '#fff', fontWeight: '700' },
     submitButtonDisabled: { opacity: 0.6 },
     inputHint: { fontSize: 12, color: '#dc3545', marginTop: 5, marginBottom: 5, marginLeft: 5 },
->>>>>>> main
 });
