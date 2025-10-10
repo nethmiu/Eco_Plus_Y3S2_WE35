@@ -43,18 +43,19 @@ export default function ChallengeListScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // --- STATE FOR FILTERING ---
+    // --- STATE FOR FILTERING (Step 1.2) ---
     const [selectedUnitKey, setSelectedUnitKey] = useState('All'); 
-    // -------------------------------
+    // ----------------------------------------
 
     // Function to get the actual unit value (kWh, m3, bags) from the selected key
     const getUnitValue = (key) => {
         const unit = CHALLENGE_UNITS.find(u => u.key === key);
-        return unit ? unit.unit : 'All';
+        // Returns the unit code (kWh, m3, bags) or 'All'
+        return unit ? unit.unit : 'All'; 
     };
 
     const fetchChallenges = useCallback(async (unitKey) => {
-        const unitFilter = getUnitValue(unitKey); // Get the actual unit code
+        const unitFilter = getUnitValue(unitKey); // Get the actual unit code (kWh, m3, etc.)
         
         try {
             setLoading(true);
@@ -65,6 +66,7 @@ export default function ChallengeListScreen({ navigation }) {
             }
 
             // 1. Build the API URL with filter parameter (Step 1.3)
+            // Use the unitFilter value (kWh, m3, etc.) for the query
             const query = unitFilter && unitFilter !== 'All' ? `?unit=${unitFilter}` : '';
             const fetchURL = `${API_URL}${query}`;
             
@@ -86,14 +88,15 @@ export default function ChallengeListScreen({ navigation }) {
         }
     }, [navigation]); // Dependency array for useCallback
 
-    // --- UPDATED useEffect for filtering (Step 1.3 - Integration Logic) ---
+    // --- UPDATED useEffect for filtering (Step 1.3 - Instant Integration Logic) ---
     useEffect(() => {
-        // This useEffect runs once on mount, and then every time selectedUnitKey changes
+        // Fix 1: This runs immediately whenever selectedUnitKey changes (Instant filtering)
         fetchChallenges(selectedUnitKey);
         
+        // This is necessary to re-fetch when the screen comes into focus from another screen
         const unsubscribe = navigation.addListener('focus', () => fetchChallenges(selectedUnitKey));
         return unsubscribe;
-    }, [navigation, selectedUnitKey, fetchChallenges]); // fetchChallenges is now stable (used in useCallback)
+    }, [navigation, selectedUnitKey, fetchChallenges]); 
     // ---------------------------------------------------------------------
 
 
@@ -142,6 +145,7 @@ export default function ChallengeListScreen({ navigation }) {
                     <MaterialCommunityIcons 
                         name={item.icon} 
                         size={18} 
+                        // Fix 2: Icon color logic is based on whether the button is active
                         color={selectedUnitKey === item.key ? styles.filterButtonActiveText.color : styles.filterButtonText.color}
                     />
                     <Text style={[
@@ -227,7 +231,8 @@ export default function ChallengeListScreen({ navigation }) {
                 <Text style={styles.noChallengesText}>
                     {selectedUnitKey === 'All' ? 
                         "No active challenges available right now." :
-                        `No active challenges found for ${getUnitValue(selectedUnitKey).toUpperCase()}.`
+                        // Fix 2: Display the selected filter label when no results are found
+                        `No active challenges found for ${CHALLENGE_UNITS.find(u => u.key === selectedUnitKey).label}.`
                     }
                 </Text>
             ) : (
