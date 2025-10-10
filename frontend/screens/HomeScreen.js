@@ -288,17 +288,7 @@ export default function HomeScreen({ navigation }) {
         navigation.navigate('Profile', { user: user });
     }, [navigation, user]);
 
-    // The navigateToChallenges function is removed
 
-    const navigateToLeaderboard = useCallback(() => {
-        navigation.navigate('Leaderboard');
-    }, [navigation]);
-    
-    // --- NEW LEADERBOARD NAVIGATOR ---
-    const navigateToLeaderboard = useCallback(() => {
-        navigation.navigate('Leaderboard');
-    }, [navigation]);
-    // --- END NEW NAVIGATOR ---
 
     if (loading) {
         return (
@@ -404,17 +394,6 @@ export default function HomeScreen({ navigation }) {
                         style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
                     />
                     
-                    {/* --- NEW LEADERBOARD BUTTON --- */}
-                    <ActionButton
-                        title="View Leaderboard"
-                        onPress={navigateToLeaderboard}
-                        icon="chart-bar"
-                        iconLibrary="MaterialCommunityIcons"
-                        variant="secondary"
-                        style={[styles.challengesButton, { backgroundColor: '#FF9800' }]} 
-                    />
-                    {/* --- END NEW BUTTON --- */}
-
                     <ActionButton
                         title="Sing out"
                         onPress={handleLogout}
