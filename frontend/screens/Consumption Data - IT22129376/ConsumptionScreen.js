@@ -8,7 +8,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
-  TouchableOpacity
+  TouchableOpacity,
+  Modal,
+  Animated
 } from 'react-native';
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,9 +20,9 @@ import config from '../../config';
 const theme = {
   primary: '#4CAF50',       
   secondary: '#1E88E5',     
-  energy: '#e36414',        
-  water: '#0077b6',         
-  waste: '#388e3c',           
+  energy: '#4CAF50',        
+  water: '#4CAF50',         
+  waste: '#4CAF50',           
   background: '#f5f5f5',
   card: '#fff',
   text: '#000',
@@ -33,13 +35,28 @@ const theme = {
 const ConsumptionScreen = ({ navigation }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [sustainabilityProfile, setSustainabilityProfile] = useState(null);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [hasConsumptionData, setHasConsumptionData] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('ENERGY');
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(300));
 
-  // Fetch dashboard data
+  // Check if user has any consumption data
+  const checkConsumptionData = (dashboardData) => {
+    if (!dashboardData) return false;
+    
+    const hasElectricity = dashboardData.totalEntries?.electricity > 0;
+    const hasWater = dashboardData.totalEntries?.water > 0;
+    const hasWaste = dashboardData.totalEntries?.waste > 0;
+    
+    return hasElectricity || hasWater || hasWaste;
+  };
+
+  // Fetch all required data
   const fetchDashboardData = useCallback(async () => {
     if (!refreshing) setLoading(true);
     
@@ -55,19 +72,42 @@ const ConsumptionScreen = ({ navigation }) => {
         headers: { Authorization: `Bearer ${token}` } 
       };
 
-      // Fetch dashboard data
-      const dashboardResponse = await axios.get(
-        `http://${config.IP}:${config.PORT}/api/data/dashboard`, 
+      // First, check if profile exists
+      const profileCheckResponse = await axios.get(
+        `http://${config.IP}:${config.PORT}/api/data/check-profile`,
         axiosConfig
       );
-      setDashboardData(dashboardResponse.data);
       
-      // Fetch sustainability profile
-      const profileResponse = await axios.get(
-        `http://${config.IP}:${config.PORT}/api/data/get-profile`,
-        axiosConfig
-      );
-      setSustainabilityProfile(profileResponse.data.data?.sustainabilityProfile);
+      const profileExists = profileCheckResponse.data.data?.sustainabilityProfile;
+      setHasProfile(profileExists);
+
+      if (profileExists) {
+        // If profile exists, fetch dashboard data and profile details
+        const [dashboardResponse, profileResponse] = await Promise.all([
+          axios.get(`http://${config.IP}:${config.PORT}/api/data/dashboard`, axiosConfig),
+          axios.get(`http://${config.IP}:${config.PORT}/api/data/get-profile`, axiosConfig)
+        ]);
+
+        setDashboardData(dashboardResponse.data);
+        setSustainabilityProfile(profileResponse.data.data?.sustainabilityProfile);
+        setHasConsumptionData(checkConsumptionData(dashboardResponse.data));
+      } else {
+        // If no profile, just set basic state and show setup modal
+        setSustainabilityProfile(null);
+        setDashboardData(null);
+        setHasConsumptionData(false);
+        
+        // Show profile setup modal after a short delay
+        setTimeout(() => {
+          setShowProfileSetup(true);
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }).start();
+        }, 1000);
+      }
       
       setError(null);
     } catch (err) {
@@ -78,29 +118,6 @@ const ConsumptionScreen = ({ navigation }) => {
       setRefreshing(false);
     }
   }, [refreshing]);
-
-  // Fetch sustainability profile separately
-  const fetchSustainabilityProfile = useCallback(async () => {
-    setProfileLoading(true);
-    try {
-      const token = await SecureStore.getItemAsync('userToken');
-      if (!token) return;
-
-      const axiosConfig = { 
-        headers: { Authorization: `Bearer ${token}` } 
-      };
-
-      const response = await axios.get(
-        `http://${config.IP}:${config.PORT}/api/data/get-profile`,
-        axiosConfig
-      );
-      setSustainabilityProfile(response.data.data?.sustainabilityProfile);
-    } catch (err) {
-      console.error("Error fetching sustainability profile:", err.message);
-    } finally {
-      setProfileLoading(false);
-    }
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -113,173 +130,181 @@ const ConsumptionScreen = ({ navigation }) => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Render sustainability profile content based on active tab
-  const renderProfileContent = () => {
-    if (profileLoading) {
-      return <ActivityIndicator size="small" color={currentTabData.color} />;
-    }
-
-    if (!sustainabilityProfile) {
-      return (
-        <View style={styles.profileContent}>
-          <Text style={styles.profileDescription}>
-            No sustainability profile set up yet
-          </Text>
-          <TouchableOpacity 
-            style={[styles.setupProfileButton, { backgroundColor: currentTabData.color }]}
-            onPress={() => navigation.navigate('SustainabilityProfile')}
-          >
-            <Text style={styles.setupProfileButtonText}>Setup Profile</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    switch (activeTab) {
-      case 'ENERGY':
-        return (
-          <View style={styles.profileContent}>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Energy Sources:</Text>
-              <View style={styles.sourcesContainer}>
-                {sustainabilityProfile.primaryEnergySources?.map((source, index) => (
-                  <View key={index} style={styles.sourceItem}>
-                    <MaterialCommunityIcons 
-                      name="check-circle" 
-                      size={16} 
-                      color={theme.energy} 
-                      style={styles.sourceIcon}
-                    />
-                    <Text style={styles.sourceText}>{source}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        );
-
-      case 'WATER':
-        return (
-          <View style={styles.profileContent}>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Water Sources:</Text>
-              <View style={styles.sourcesContainer}>
-                {sustainabilityProfile.primaryWaterSources?.map((source, index) => (
-                  <View key={index} style={styles.sourceItem}>
-                    <MaterialCommunityIcons 
-                      name="check-circle" 
-                      size={16} 
-                      color={theme.water} 
-                      style={styles.sourceIcon}
-                    />
-                    <Text style={styles.sourceText}>{source}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        );
-
-      case 'WASTE':
-        return (
-          <View style={styles.profileContent}>
-            {/* Waste Separation */}
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Waste Separated:</Text>
-              <View style={styles.iconTextRow}>
-                {sustainabilityProfile.separateWaste ? (
-                  <>
-                    <MaterialCommunityIcons name="check-circle" size={20} color={theme.waste} />
-                    <Text style={[styles.statusText, { color: theme.waste }]}>Yes</Text>
-                  </>
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="close-circle" size={20} color="#f44336" />
-                    <Text style={[styles.statusText, { color: '#f44336' }]}>No</Text>
-                  </>
-                )}
-              </View>
-            </View>
-
-            {/* Bag Sizes - Only show if waste separation is enabled */}
-            {sustainabilityProfile.separateWaste && (
-              <View style={styles.bagSizesContainer}>
-                <Text style={styles.bagSizesTitle}>Waste Bag Sizes:</Text>
-                <View style={styles.bagSizeRow}>
-                  <MaterialCommunityIcons name="file-document" size={16} color={theme.waste} />
-                  <Text style={styles.bagSizeLabel}>Paper Bag:</Text>
-                  <Text style={styles.bagSizeValue}>{sustainabilityProfile.paperBagSize || 5}kg</Text>
-                </View>
-                <View style={styles.bagSizeRow}>
-                  <MaterialCommunityIcons name="bag-personal" size={16} color={theme.waste} />
-                  <Text style={styles.bagSizeLabel}>Plastic Bag:</Text>
-                  <Text style={styles.bagSizeValue}>{sustainabilityProfile.plasticBagSize || 5}kg</Text>
-                </View>
-                <View style={styles.bagSizeRow}>
-                  <MaterialCommunityIcons name="food-apple" size={16} color={theme.waste} />
-                  <Text style={styles.bagSizeLabel}>Food Waste Bag:</Text>
-                  <Text style={styles.bagSizeValue}>{sustainabilityProfile.foodWasteBagSize || 5}kg</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Composting */}
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Composting:</Text>
-              <View style={styles.iconTextRow}>
-                {sustainabilityProfile.compostWaste ? (
-                  <>
-                    <MaterialCommunityIcons name="check-circle" size={20} color={theme.waste} />
-                    <Text style={[styles.statusText, { color: theme.waste }]}>Yes</Text>
-                  </>
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="close-circle" size={20} color="#f44336" />
-                    <Text style={[styles.statusText, { color: '#f44336' }]}>No</Text>
-                  </>
-                )}
-              </View>
-            </View>
-          </View>
-        );
-
-      default:
-        return null;
-    }
+  const closeProfileSetup = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowProfileSetup(false);
+    });
   };
 
-  // Tab data configuration
-  const tabData = {
-    ENERGY: {
-      icon: 'lightning-bolt',
-      label: 'Energy Usage',
-      value: dashboardData?.keyMetrics?.[0]?.value || '0 Units',
-      subtitle: 'this month',
-      color: theme.energy,
-      buttonText: 'Add Energy Consumption',
-      profileTitle: 'Energy Profile'
-    },
-    WATER: {
-      icon: 'water',
-      label: 'Water Consumption',
-      value: dashboardData?.keyMetrics?.[1]?.value || '0 Units',
-      subtitle: 'this month',
-      color: theme.water,
-      buttonText: 'Add Water Consumption',
-      profileTitle: 'Water Profile'
-    },
-    WASTE: {
-      icon: 'recycle',
-      label: 'Waste Generated',
-      value: dashboardData?.keyMetrics?.[2]?.value || '0 Bags',
-      subtitle: 'this month',
-      color: theme.waste,
-      buttonText: 'Add Waste Consumption',
-      profileTitle: 'Waste Profile'
-    }
-  };
+  // Profile Setup Modal
+  const renderProfileSetupModal = () => (
+    <Modal
+      visible={showProfileSetup}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={closeProfileSetup}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View 
+          style={[
+            styles.modalContent,
+            { transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          <View style={styles.modalHeader}>
+            <View style={styles.iconCircle}>
+              <MaterialCommunityIcons name="leaf" size={40} color="#4CAF50" />
+            </View>
+            <Text style={styles.modalTitle}>Start Your Eco Journey! 🌱</Text>
+            <Text style={styles.modalSubtitle}>
+              Setup your profile to get personalized sustainability insights
+            </Text>
+          </View>
 
-  const currentTabData = tabData[activeTab];
+          <View style={styles.featuresList}>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="chart-line" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Track your consumptions</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="lightbulb-on" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Get personalized eco-tips</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialCommunityIcons name="target" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Set achievable sustainability goals</Text>
+            </View>
+          </View>
+
+          <View style={styles.modalButtons}>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.primaryModalButton]}
+              onPress={() => {
+                closeProfileSetup();
+                navigation.navigate('SustainabilityProfile');
+              }}
+            >
+             
+              <Text style={styles.primaryModalButtonText}>Setup Profile</Text>
+            </TouchableOpacity>
+            
+
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.secondaryModalButton]}
+              onPress={closeProfileSetup}
+            >
+              <Text style={styles.secondaryModalButtonText}>Maybe Later</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+
+  const renderNoProfileState = () => (
+    <View style={styles.emptyStateContainer}>
+      <View style={styles.emptyStateIcon}>
+        <MaterialCommunityIcons name="account-question" size={64} color="#ccc" />
+      </View>
+      <Text style={styles.emptyStateTitle}>Setup Your Profile First</Text>
+      <Text style={styles.emptyStateDescription}>
+        Before you can track your consumption, we need to know about your sustainability preferences to provide accurate insights.
+      </Text>
+      
+      <TouchableOpacity 
+        style={styles.primaryEmptyStateButton}
+        onPress={() => navigation.navigate('SustainabilityProfile')}
+      >
+        <MaterialCommunityIcons name="rocket-launch" size={20} color="#fff" />
+        <Text style={styles.primaryEmptyStateButtonText}>Setup Sustainability Profile</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.secondaryEmptyStateButton}
+        onPress={closeProfileSetup}
+      >
+        <Text style={styles.secondaryEmptyStateButtonText}>I'll do it later</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Profile exists but no consumption data - Ask to add data
+  const renderNoDataState = () => (
+    <View style={styles.emptyStateContainer}>
+      <View style={styles.emptyStateIcon}>
+        <MaterialCommunityIcons name="chart-line" size={64} color="#4CAF50" />
+      </View>
+      <Text style={styles.emptyStateTitle}>Start Tracking Your Consumption</Text>
+      <Text style={styles.emptyStateDescription}>
+        Your sustainability profile is all set! Now start tracking your energy, water, and waste consumption to see your environmental impact.
+      </Text>
+      
+      <View style={styles.dataTypeButtons}>
+        <TouchableOpacity 
+          style={[styles.dataTypeButton, { backgroundColor: theme.energy }]}
+          onPress={() => navigation.navigate('ElectricityData')}
+        >
+          <MaterialCommunityIcons name="lightning-bolt" size={20} color="#fff" />
+          <Text style={styles.dataTypeButtonText}>Add Energy Data</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.dataTypeButton, { backgroundColor: theme.water }]}
+          onPress={() => navigation.navigate('WaterData')}
+        >
+          <MaterialCommunityIcons name="water" size={20} color="#fff" />
+          <Text style={styles.dataTypeButtonText}>Add Water Data</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.dataTypeButton, { backgroundColor: theme.waste }]}
+          onPress={() => navigation.navigate('WasteData')}
+        >
+          <MaterialCommunityIcons name="recycle" size={20} color="#fff" />
+          <Text style={styles.dataTypeButtonText}>Add Waste Data</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Normal consumption view with data
+  const renderConsumptionView = () => {
+    const tabData = {
+      ENERGY: {
+        icon: 'lightning-bolt',
+        label: 'Energy Usage',
+        value: `${dashboardData?.keyMetrics?.[0]?.value || '0'} `,
+        subtitle: 'this month',
+        color: theme.energy,
+        buttonText: 'Add Energy Data',
+        profileTitle: 'Energy Profile'
+      },
+      WATER: {
+        icon: 'water',
+        label: 'Water Consumption',
+        value: `${dashboardData?.keyMetrics?.[1]?.value || '0'} `,
+        subtitle: 'this month',
+        color: theme.water,
+        buttonText: 'Add Water Data',
+        profileTitle: 'Water Profile'
+      },
+      WASTE: {
+        icon: 'recycle',
+        label: 'Waste Generated',
+        value: `${dashboardData?.keyMetrics?.[2]?.value || '0'} `,
+        subtitle: 'this month',
+        color: theme.waste,
+        buttonText: 'Add Waste Data',
+        profileTitle: 'Waste Profile'
+      }
+    };
+
+    const currentTabData = tabData[activeTab];
 
     // Handle navigation to usage history
   const handleViewUsageHistory = () => {
@@ -294,6 +319,154 @@ const ConsumptionScreen = ({ navigation }) => {
       'WASTE': 'WasteData'
     };
     navigation.navigate(screenMap[activeTab] || 'ElectricityData');
+  };
+
+    const renderProfileContent = () => {
+      if (!sustainabilityProfile) return null;
+
+      switch (activeTab) {
+        case 'ENERGY':
+          return (
+            <View style={styles.profileContent}>
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Energy Sources:</Text>
+                <View style={styles.sourcesContainer}>
+                  {sustainabilityProfile.primaryEnergySources?.map((source, index) => (
+                    <View key={index} style={styles.sourceItem}>
+                      <MaterialCommunityIcons name="check-circle" size={16} color={theme.energy} />
+                      <Text style={styles.sourceText}>{source}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          );
+
+        case 'WATER':
+          return (
+            <View style={styles.profileContent}>
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Water Sources:</Text>
+                <View style={styles.sourcesContainer}>
+                  {sustainabilityProfile.primaryWaterSources?.map((source, index) => (
+                    <View key={index} style={styles.sourceItem}>
+                      <MaterialCommunityIcons name="check-circle" size={16} color={theme.water} />
+                      <Text style={styles.sourceText}>{source}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          );
+
+        case 'WASTE':
+          return (
+            <View style={styles.profileContent}>
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Waste Separated:</Text>
+                <View style={styles.iconTextRow}>
+                  {sustainabilityProfile.separateWaste ? (
+                    <>
+                      <MaterialCommunityIcons name="check-circle" size={20} color={theme.waste} />
+                      <Text style={[styles.statusText, { color: theme.waste }]}>Yes</Text>
+                    </>
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="close-circle" size={20} color="#f44336" />
+                      <Text style={[styles.statusText, { color: '#f44336' }]}>No</Text>
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+          );
+
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <>
+        {/* Tab Navigation */}
+        <View style={styles.tabContainer}>
+          {Object.keys(tabData).map((tab) => (
+            <TouchableOpacity 
+              key={tab}
+              style={styles.tab}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[
+                styles.tabText, 
+                activeTab === tab && [styles.tabTextActive, { color: tabData[tab].color }]
+              ]}>
+                {tab}
+              </Text>
+              {activeTab === tab && (
+                <View style={[styles.tabIndicator, { backgroundColor: tabData[tab].color }]} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <MaterialCommunityIcons name="account-check" size={20} color={currentTabData.color} />
+            <Text style={styles.profileTitle}>{currentTabData.profileTitle}</Text>
+          </View>
+          {renderProfileContent()}
+        </View>
+
+        {/* Main Consumption Card */}
+        <View style={[styles.mainCard, { backgroundColor: currentTabData.color }]}>
+          <View style={styles.cardTopSection}>
+            <Text style={styles.cardLabel}>{currentTabData.label}</Text>
+            <MaterialCommunityIcons name={currentTabData.icon} size={28} color="#fff" />
+          </View>
+          <View style={styles.cardValueSection}>
+            <Text style={styles.cardValue}>{currentTabData.value}</Text>
+            <Text style={styles.cardSubInfo}>{currentTabData.subtitle}</Text>
+          </View>
+          <TouchableOpacity style={styles.cardBottomSection} onPress={handleViewUsageHistory}>
+            <Text style={styles.cardNote}>View Usage History</Text>
+            <MaterialCommunityIcons name="chevron-right" size={25} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.secondaryButton, { borderColor: currentTabData.color }]}
+            onPress={() => navigation.navigate('SustainabilityProfile')}
+          >
+            <MaterialCommunityIcons name="account-edit" size={15} color={currentTabData.color} />
+            <Text style={[styles.secondaryButtonText, { color: currentTabData.color }]}>
+              Edit Profile
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.primaryButton, { backgroundColor: currentTabData.color }]}
+            onPress={handleAddData}
+          >
+            <MaterialCommunityIcons name="plus" size={15} color="#fff" />
+            <Text style={styles.primaryButtonText}>{currentTabData.buttonText}</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+    );
+  };
+
+  // Main render logic
+  const renderContent = () => {
+    if (!hasProfile) {
+      return renderNoProfileState();
+    } else if (!hasConsumptionData) {
+      return renderNoDataState();
+    } else {
+      return renderConsumptionView();
+    }
   };
 
   if (loading) {
@@ -319,6 +492,8 @@ const ConsumptionScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {renderProfileSetupModal()}
+      
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={
@@ -332,122 +507,24 @@ const ConsumptionScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerInfo}>
-            Here's Info as at {new Date().toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit', 
-              hour12: true 
-            })}, Today. Pull to refresh
+            {hasProfile && hasConsumptionData 
+              ? `Here's your consumption data as of ${new Date().toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit', 
+                  hour12: true 
+                })}. Pull to refresh.`
+              : 'Welcome to EcoTracker! Start your sustainability journey.'
+            }
           </Text>
         </View>
 
-        {/* Tab Navigation */}
-        <View style={styles.tabContainer}>
-          {Object.keys(tabData).map((tab) => (
-            <TouchableOpacity 
-              key={tab}
-              style={styles.tab}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[
-                styles.tabText, 
-                activeTab === tab && [styles.tabTextActive, { color: tabData[tab].color }]
-              ]}>
-                {tab}
-              </Text>
-              {activeTab === tab && (
-                <View style={[styles.tabIndicator, { backgroundColor: tabData[tab].color }]} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Sustainability Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileHeader}>
-            <MaterialCommunityIcons 
-              name="account-details" 
-              size={20} 
-              color={currentTabData.color} 
-            />
-            <Text style={styles.profileTitle}>
-              {currentTabData.profileTitle}
-            </Text>
-          </View>
-          
-          {renderProfileContent()}
-          
-          {sustainabilityProfile && (
-            <Text style={styles.profileUpdateText}>
-              Last updated: {new Date(sustainabilityProfile.lastUpdated).toLocaleDateString()}
-            </Text>
-          )}
-        </View>
-
-        {/* Main Card - Changes based on active tab */}
-        <View style={[styles.mainCard, { backgroundColor: currentTabData.color }]}>
-          <View style={styles.cardTopSection}>
-            <Text style={styles.cardLabel}>{currentTabData.label}</Text>
-            <MaterialCommunityIcons 
-              name={currentTabData.icon} 
-              size={28} 
-              color="#fff" 
-            />
-          </View>
-          <View style={styles.cardValueSection}>
-            <Text style={styles.cardValue}>{currentTabData.value}</Text>
-            <Text style={styles.cardSubInfo}>{currentTabData.subtitle}</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.cardBottomSection}
-            onPress={handleViewUsageHistory}
-          >
-            <Text style={styles.cardNote}>View Usage History</Text>
-            <MaterialCommunityIcons 
-              name="chevron-right" 
-              size={25} 
-              color="#fff" 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          {/* Setup Profile Button */}
-          <TouchableOpacity
-            style={[styles.secondaryButton, { borderColor: currentTabData.color }]}
-            onPress={() => navigation.navigate('SustainabilityProfile')}
-          >
-            <MaterialCommunityIcons 
-              name="leaf-circle" 
-              size={15} 
-              color={currentTabData.color} 
-              style={styles.buttonIcon}
-            />
-            <Text style={[styles.secondaryButtonText, { color: currentTabData.color }]}>
-              Setup Profile
-            </Text>
-          </TouchableOpacity>
-
-          {/* Add Consumption Data Button */}
-          <TouchableOpacity 
-            style={[styles.primaryButton, { backgroundColor: currentTabData.color }]}
-            onPress={handleAddData}
-          >
-            <MaterialCommunityIcons 
-              name="plus" 
-              size={15} 
-              color="#fff" 
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.primaryButtonText}>{currentTabData.buttonText}</Text>
-          </TouchableOpacity>
-        </View>
+        {renderContent()}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// --- Stylesheet ---
+// Enhanced Styles
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -496,6 +573,165 @@ const styles = StyleSheet.create({
     color: theme.textTertiary,
     textAlign: 'center',
   },
+  // Empty State Styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    padding: 20,
+    marginTop: 40,
+  },
+  emptyStateIcon: {
+    marginBottom: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyStateDescription: {
+    fontSize: 16,
+    color: theme.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 30,
+  },
+  primaryEmptyStateButton: {
+    flexDirection: 'row',
+    backgroundColor: theme.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+    width: '100%',
+  },
+  primaryEmptyStateButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  secondaryEmptyStateButton: {
+    paddingVertical: 12,
+  },
+  secondaryEmptyStateButtonText: {
+    color: theme.textSecondary,
+    fontSize: 14,
+  },
+  dataTypeButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  dataTypeButton: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  dataTypeButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: theme.card,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: theme.textSecondary,
+    textAlign: 'center',
+  },
+  featuresList: {
+    marginBottom: 24,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+    gap: 12,
+  },
+  featureText: {
+    fontSize: 16,
+    color: theme.text,
+    flex: 1,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryModalButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  secondaryModalButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  primaryModalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  secondaryModalButtonText: {
+    color: theme.textSecondary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  
+  
   tabContainer: {
     backgroundColor: theme.card,
     flexDirection: 'row',
@@ -564,7 +800,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
   },
   cardNote: {
     fontSize: 13,
@@ -610,9 +845,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-  buttonIcon: {
-    marginRight: 8,
   },
   profileCard: {
     backgroundColor: theme.card,
@@ -662,9 +894,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sourceIcon: {
-    marginRight: 6,
-  },
   sourceText: {
     fontSize: 14,
     color: theme.textSecondary,
@@ -677,59 +906,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  bagSizesContainer: {
-    backgroundColor: theme.background,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  bagSizesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.text,
-    marginBottom: 8,
-  },
-  bagSizeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
-  },
-  bagSizeLabel: {
-    fontSize: 13,
-    color: theme.textSecondary,
-    flex: 1,
-  },
-  bagSizeValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.text,
-  },
-  profileDescription: {
-    fontSize: 16,
-    color: theme.text,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  profileUpdateText: {
-    fontSize: 12,
-    color: theme.textTertiary,
-    fontStyle: 'italic',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  setupProfileButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  setupProfileButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
   },
 });
 

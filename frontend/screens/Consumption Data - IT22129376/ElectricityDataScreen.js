@@ -76,6 +76,11 @@ export default function ElectricityDataScreen({ navigation }) {
         });
     };
 
+    const handleNext = () => {
+        navigation.navigate('WaterData');
+    };
+
+    
     return (
         <ScrollView style={styles.container}>
             <Text style={styles.title}>Add Electricity Usage ⚡</Text>
