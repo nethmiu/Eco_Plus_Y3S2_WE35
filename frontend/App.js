@@ -13,6 +13,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import EditAdminProfile from './screens/EditAdminProfile';
 import EditEnvProfile from './screens/EditEnvProfile';
 
+// --- Data Consumptions Screen Imports ---
 import ElectricityDataScreen from './screens/Consumption Data - IT22129376/ElectricityDataScreen';
 import WaterDataScreen from './screens/Consumption Data - IT22129376/WaterDataScreen';
 import WasteDataScreen from './screens/Consumption Data - IT22129376/WasteDataScreen';
@@ -20,6 +21,8 @@ import ConsumptionScreen from './screens/Consumption Data - IT22129376/Consumpti
 import UsageHistoryScreen from './screens/Consumption Data - IT22129376/UsageHistoryScreen';
 import SustainabilityProfileScreen from './screens/Consumption Data - IT22129376/SustainabilityProfile';
 import CameraScreen from './screens/Consumption Data - IT22129376/CameraScreen';
+// Navigation Imports
+import DataEntryModalStack from './navigation/DataEntryModalStack';
 
 import AddChallengeScreen from './screens/AddChallengeScreen'; 
 import ChallengeListScreen from './screens/ChallengeListScreen';
@@ -37,8 +40,7 @@ import ResetPasswordScreen from './screens/ResetPasswordScreen';
 
 import DashboardScreen from './screens/DashboardScreen';
 
-// Navigation Imports
-import DataEntryModalStack from './navigation/DataEntryModalStack';
+
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -155,7 +157,7 @@ export default function App() {
         {/* Main App with Bottom Tabs */}
         <Stack.Screen name="MainApp" component={BottomTabNavigator} />
         
-          {/* Other Screens that should be outside the tab navigator */}
+        {/* Other Screens that should be outside the tab navigator */}
         <Stack.Screen name="AddChallenge" component={AddChallengeScreen} />
         <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
         <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
@@ -189,7 +191,7 @@ export default function App() {
 // Helper function for dynamic titles
 const getUsageHistoryTitle = (type) => {
   const titles = {
-    'ENERGY': 'Electricity Usage History',
+    ' ': 'Electricity Usage History',
     'WATER': 'Water Usage History', 
     'WASTE': 'Waste Management History'
   };

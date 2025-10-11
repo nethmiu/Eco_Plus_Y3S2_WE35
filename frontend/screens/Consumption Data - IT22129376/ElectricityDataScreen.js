@@ -115,6 +115,7 @@ export default function ElectricityDataScreen({ navigation, route }) {
         navigation.navigate('WaterData');
     };
 
+    
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />

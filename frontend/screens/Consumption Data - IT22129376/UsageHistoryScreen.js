@@ -3,16 +3,19 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
   SafeAreaView, 
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
   SectionList,
-  Alert
+  Alert,
+  Modal,
+  TextInput,
+  Platform
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import config from '../../config';
@@ -20,9 +23,9 @@ import config from '../../config';
 const theme = {
   primary: '#4CAF50',       
   secondary: '#1E88E5',     
-  energy: '#e36414',        
-  water: '#0077b6',         
-  waste: '#388e3c',           
+  energy: '#4CAF50',        
+  water: '#4CAF50',         
+  waste: '#4CAF50',           
   background: '#f5f5f5',
   card: '#fff',
   text: '#000',
@@ -34,9 +37,22 @@ const theme = {
 const UsageHistoryScreen = ({ route, navigation }) => {
   const { type = 'ENERGY' } = route.params || {};
   const [usageData, setUsageData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Filter states
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [isFilterActive, setIsFilterActive] = useState(false);
+
+  // Sort states
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [sortOption, setSortOption] = useState('newest'); // 'newest', 'oldest'
 
   // Map types to API endpoints and display data
   const typeConfig = {
@@ -102,9 +118,17 @@ const UsageHistoryScreen = ({ route, navigation }) => {
           }));
         }
 
-        // Group data by month/year for section list
-        const groupedData = groupDataByMonth(data, currentConfig.dateKey);
-        setUsageData(groupedData);
+        // Sort data by selected sort option
+        const sortedData = sortData(data, sortOption, currentConfig.dateKey);
+        
+        // Create a single section with all data
+        const sectionData = [{
+          title: 'All Entries',
+          data: sortedData
+        }];
+
+        setUsageData(sectionData);
+        setFilteredData(sectionData);
         setError(null);
       } else {
         setError('Failed to load usage history');
@@ -116,40 +140,107 @@ const UsageHistoryScreen = ({ route, navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [type, refreshing]);
+  }, [type, refreshing, sortOption]);
 
-  // Group data by month for section list
-  const groupDataByMonth = (data, dateKey) => {
-    const groups = {};
+  // Sort data based on selected option
+  const sortData = (data, sortBy, dateKey) => {
+    const sortedData = data.map(item => ({
+      ...item,
+      formattedDate: new Date(item[dateKey]).toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }),
+      timestamp: new Date(item[dateKey]).getTime()
+    }));
+
+    switch (sortBy) {
+      case 'newest':
+        return sortedData.sort((a, b) => b.timestamp - a.timestamp);
+      case 'oldest':
+        return sortedData.sort((a, b) => a.timestamp - b.timestamp);
+      default:
+        return sortedData.sort((a, b) => b.timestamp - a.timestamp);
+    }
+  };
+
+  // Apply sorting to existing data
+  const applySorting = (sortBy) => {
+    setSortOption(sortBy);
     
-    data.forEach(item => {
-      const date = new Date(item[dateKey]);
-      const monthYear = date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long' 
-      });
-      
-      if (!groups[monthYear]) {
-        groups[monthYear] = [];
-      }
-      
-      groups[monthYear].push({
-        ...item,
-        formattedDate: date.toLocaleDateString('en-US', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
-        })
-      });
-    });
+    const updatedData = usageData.map(section => ({
+      ...section,
+      data: sortData(section.data, sortBy, currentConfig.dateKey)
+    }));
 
-    // Convert to section list format and sort by date (newest first)
-    return Object.entries(groups)
-      .map(([title, data]) => ({
-        title,
-        data: data.sort((a, b) => new Date(b[dateKey]) - new Date(a[dateKey]))
-      }))
-      .sort((a, b) => new Date(b.data[0][dateKey]) - new Date(a.data[0][dateKey]));
+    setFilteredData(updatedData);
+    setShowSortModal(false);
+  };
+
+  // Apply date range filter
+  const applyDateFilter = () => {
+    if (!startDate && !endDate) {
+      setFilteredData(usageData);
+      setIsFilterActive(false);
+      setShowFilterModal(false);
+      return;
+    }
+
+    const filtered = usageData.map(section => {
+      const filteredSectionData = section.data.filter(item => {
+        const itemDate = item.timestamp;
+        const startTimestamp = startDate ? startDate.getTime() : 0;
+        const endTimestamp = endDate ? endDate.getTime() : Date.now();
+
+        if (startDate && endDate) {
+          return itemDate >= startTimestamp && itemDate <= endTimestamp;
+        } else if (startDate) {
+          return itemDate >= startTimestamp;
+        } else if (endDate) {
+          return itemDate <= endTimestamp;
+        }
+        return true;
+      });
+
+      return {
+        ...section,
+        data: filteredSectionData
+      };
+    }).filter(section => section.data.length > 0);
+
+    setFilteredData(filtered);
+    setIsFilterActive(true);
+    setShowFilterModal(false);
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setFilteredData(usageData);
+    setIsFilterActive(false);
+  };
+
+  // Format date for display
+  const formatDate = (date) => {
+    if (!date) return 'Select Date';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Get sort icon based on current sort option
+  const getSortIcon = () => {
+    switch (sortOption) {
+      case 'newest':
+        return 'sort-descending';
+      case 'oldest':
+        return 'sort-ascending';
+      default:
+        return 'sort';
+    }
   };
 
   useFocusEffect(
@@ -180,11 +271,7 @@ const UsageHistoryScreen = ({ route, navigation }) => {
               const axiosConfig = { headers: { Authorization: `Bearer ${token}` } };
               await axios.delete(`http://${config.IP}:${config.PORT}/api/data/${currentConfig.apiEndpoint}/${itemId}`, axiosConfig);
               
-
-              // Note: You'll need to implement delete endpoints in your backend
-              // For now, we'll just refetch the data
               await fetchUsageHistory();
-              
               Alert.alert('Success', 'Entry deleted successfully');
             } catch (error) {
               Alert.alert('Error', 'Failed to delete entry');
@@ -239,6 +326,41 @@ const UsageHistoryScreen = ({ route, navigation }) => {
     </View>
   );
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <MaterialCommunityIcons 
+        name="clipboard-text-outline" 
+        size={64} 
+        color={theme.textTertiary} 
+      />
+      <Text style={styles.emptyStateTitle}>
+        {isFilterActive ? 'No Data Found' : 'No Usage Data'}
+      </Text>
+      <Text style={styles.emptyStateText}>
+        {isFilterActive ? 
+          'No entries found for the selected date range. Try adjusting your filters.' :
+          `You haven't added any ${type.toLowerCase()} consumption data yet.`
+        }
+      </Text>
+      {isFilterActive ? (
+        <TouchableOpacity 
+          style={[styles.addDataButton, { backgroundColor: currentConfig.color }]}
+          onPress={clearFilters}
+        >
+          <Text style={styles.addDataButtonText}>Clear Filters</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity 
+          style={[styles.addDataButton, { backgroundColor: currentConfig.color }]}
+          onPress={() => navigation.navigate(`${type.charAt(0) + type.slice(1).toLowerCase()}Data`)}
+        >
+          <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+          <Text style={styles.addDataButtonText}>Add Your First Entry</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.centerContainer]}>
@@ -265,10 +387,219 @@ const UsageHistoryScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-     
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.sortButton}
+          onPress={() => setShowSortModal(true)}
+        >
+          <MaterialCommunityIcons 
+            name={getSortIcon()} 
+            size={24} 
+            color={currentConfig.color} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <MaterialCommunityIcons 
+            name={isFilterActive ? "filter-check" : "filter"} 
+            size={24} 
+            color={isFilterActive ? currentConfig.color : theme.textSecondary} 
+          />
+        </TouchableOpacity>
+      </View>
 
-      <ScrollView
-        style={styles.container}
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter by Date Range</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>From Date</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => setShowStartDatePicker(true)}
+              >
+                <Text style={styles.dateInputText}>{formatDate(startDate)}</Text>
+                <MaterialCommunityIcons name="calendar" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>To Date</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Text style={styles.dateInputText}>{formatDate(endDate)}</Text>
+                <MaterialCommunityIcons name="calendar" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Date Pickers */}
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={startDate || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowStartDatePicker(false);
+                  if (selectedDate) {
+                    setStartDate(selectedDate);
+                  }
+                }}
+              />
+            )}
+
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={endDate || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowEndDatePicker(false);
+                  if (selectedDate) {
+                    setEndDate(selectedDate);
+                  }
+                }}
+              />
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.clearButton]}
+                onPress={clearFilters}
+              >
+                <Text style={styles.clearButtonText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, { backgroundColor: currentConfig.color }]}
+                onPress={applyDateFilter}
+              >
+                <Text style={styles.applyButtonText}>Apply Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sort Modal */}
+      <Modal
+        visible={showSortModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sort By</Text>
+              <TouchableOpacity onPress={() => setShowSortModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sortOptionsContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.sortOption,
+                  sortOption === 'newest' && { backgroundColor: `${currentConfig.color}20` }
+                ]}
+                onPress={() => applySorting('newest')}
+              >
+                <MaterialCommunityIcons 
+                  name="sort-descending" 
+                  size={20} 
+                  color={sortOption === 'newest' ? currentConfig.color : theme.textSecondary} 
+                />
+                <Text style={[
+                  styles.sortOptionText,
+                  sortOption === 'newest' && { color: currentConfig.color, fontWeight: '600' }
+                ]}>
+                  Newest First
+                </Text>
+                {sortOption === 'newest' && (
+                  <MaterialCommunityIcons name="check" size={20} color={currentConfig.color} />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.sortOption,
+                  sortOption === 'oldest' && { backgroundColor: `${currentConfig.color}20` }
+                ]}
+                onPress={() => applySorting('oldest')}
+              >
+                <MaterialCommunityIcons 
+                  name="sort-ascending" 
+                  size={20} 
+                  color={sortOption === 'oldest' ? currentConfig.color : theme.textSecondary} 
+                />
+                <Text style={[
+                  styles.sortOptionText,
+                  sortOption === 'oldest' && { color: currentConfig.color, fontWeight: '600' }
+                ]}>
+                  Oldest First
+                </Text>
+                {sortOption === 'oldest' && (
+                  <MaterialCommunityIcons name="check" size={20} color={currentConfig.color} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Filter Indicator */}
+      {isFilterActive && (
+        <View style={[styles.filterIndicator, { backgroundColor: currentConfig.color }]}>
+          <MaterialCommunityIcons name="filter-check" size={16} color="#fff" />
+          <Text style={styles.filterIndicatorText}>
+            Showing filtered results {startDate && endDate ? 
+              `from ${formatDate(startDate)} to ${formatDate(endDate)}` : 
+              startDate ? `from ${formatDate(startDate)}` : 
+              `until ${formatDate(endDate)}`
+            }
+          </Text>
+          <TouchableOpacity onPress={clearFilters}>
+            <MaterialCommunityIcons name="close" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Sort Indicator */}
+      <View style={styles.sortIndicator}>
+        <Text style={styles.sortIndicatorText}>
+          Sorted by: {sortOption === 'newest' ? 'Newest First' : 'Oldest First'}
+        </Text>
+      </View>
+
+      {/* Use SectionList directly instead of nesting in ScrollView */}
+      <SectionList
+        sections={filteredData}
+        keyExtractor={(item) => item._id}
+        renderItem={renderUsageItem}
+        renderSectionHeader={renderSectionHeader}
+        ListEmptyComponent={renderEmptyState}
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={[
+          styles.sectionListContent,
+          filteredData.length === 0 && styles.emptyListContainer
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -276,38 +607,8 @@ const UsageHistoryScreen = ({ route, navigation }) => {
             colors={[currentConfig.color]}
           />
         }
-      >
-        {usageData.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons 
-              name="clipboard-text-outline" 
-              size={64} 
-              color={theme.textTertiary} 
-            />
-            <Text style={styles.emptyStateTitle}>No Usage Data</Text>
-            <Text style={styles.emptyStateText}>
-              You haven't added any {type.toLowerCase()} consumption data yet.
-            </Text>
-            <TouchableOpacity 
-              style={[styles.addDataButton, { backgroundColor: currentConfig.color }]}
-              onPress={() => navigation.navigate(`${type.charAt(0) + type.slice(1).toLowerCase()}Data`)}
-            >
-              <MaterialCommunityIcons name="plus" size={16} color="#fff" />
-              <Text style={styles.addDataButtonText}>Add Your First Entry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <SectionList
-            sections={usageData}
-            keyExtractor={(item) => item._id}
-            renderItem={renderUsageItem}
-            renderSectionHeader={renderSectionHeader}
-            stickySectionHeadersEnabled={false}
-            contentContainerStyle={styles.sectionListContent}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </ScrollView>
+        showsVerticalScrollIndicator={true}
+      />
     </SafeAreaView>
   );
 };
@@ -354,29 +655,136 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
   },
-  backButton: {
+  sortButton: {
     padding: 8,
   },
-  headerTitleContainer: {
+  filterButton: {
+    padding: 8,
+  },
+  sortIndicator: {
+    backgroundColor: theme.card,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  sortIndicatorText: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    textAlign: 'center',
+  },
+  filterIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 8,
+    gap: 8,
   },
-  headerTitle: {
+  filterIndicatorText: {
+    color: '#fff',
+    fontSize: 12,
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: theme.text,
-    marginLeft: 8,
   },
-  headerRight: {
-    width: 40, // Balance the header layout
+  dateInputContainer: {
+    marginBottom: 16,
   },
-  container: {
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.text,
+    marginBottom: 8,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: theme.background,
+  },
+  dateInputText: {
+    fontSize: 16,
+    color: theme.text,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  modalButton: {
     flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearButton: {
+    backgroundColor: theme.background,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  clearButtonText: {
+    color: theme.text,
+    fontWeight: '600',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  sortOptionsContainer: {
+    gap: 12,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    gap: 12,
+  },
+  sortOptionText: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.text,
   },
   sectionListContent: {
+    flexGrow: 1,
     paddingBottom: 20,
+  },
+  emptyListContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   sectionHeader: {
     paddingVertical: 12,

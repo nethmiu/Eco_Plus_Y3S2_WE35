@@ -26,6 +26,10 @@ router.post('/waste', dataController.addWasteData);
 router.get('/waste', dataController.getWasteHistory); 
 router.delete('/waste/:id', dataController.deleteWasteData);
 
+// Aggregate data routes
+router.get('/last-month', dataController.getLastMonthData);
+router.get('/check-profile', dataController.checkSustainabilityProfile);
+
 // GIMHAN'S DASHBOARD ROUTE
 router.get('/dashboard', dataController.getDashboardData);
 
